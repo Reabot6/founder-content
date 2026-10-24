@@ -13,8 +13,8 @@ const links = [
   { href: '/library', label: 'Content library', icon: Books },
 ];
 const workspaceLinks = [
-  { href: '/projects', label: 'Projects', icon: FolderSimple },
-  { href: '/skills', label: 'Skills', icon: Shapes },
+  { href: '/projects', label: 'Startups', icon: FolderSimple },
+  { href: '/skills', label: 'Shared skills', icon: Shapes },
   { href: '/settings', label: 'Founder profile', icon: UserCircle },
 ];
 
@@ -42,7 +42,7 @@ export function AppShell({ children, theme, onToggleTheme }: { children: ReactNo
       </Link>
       <div className="eyebrow px-3 mb-2">Workspace</div>
       <nav className="grid gap-1"><NavLinks /></nav>
-      <div className="eyebrow px-3 mb-2 mt-8">Your context</div>
+      <div className="eyebrow px-3 mb-2 mt-8">Build context</div>
       <div className="grid gap-1">
         {workspaceLinks.map(({ href, label, icon: Icon }) => <NavItem key={href} href={href} label={label} icon={<Icon size={18} weight="regular" />} active={location === href || (location === '/profile' && href === '/settings')} />)}
       </div>
@@ -72,7 +72,7 @@ export function AppShell({ children, theme, onToggleTheme }: { children: ReactNo
       </AnimatePresence>
     </main>
     <nav className="mobile-nav" aria-label="Primary navigation">
-      {[...links.slice(0, 4), workspaceLinks[2], { href: '/billing', label: 'Plans', icon: CreditCard }].map(({ href, label, icon: Icon }) => <MobileItem key={href} href={href} label={label} icon={<Icon size={19} weight="regular" />} active={location === href || (location === '/profile' && href === '/settings')} />)}
+      {[links[0], workspaceLinks[0], links[1], workspaceLinks[1], links[3], workspaceLinks[2], { href: '/billing', label: 'Plans', icon: CreditCard }].map(({ href, label, icon: Icon }) => <MobileItem key={href} href={href} label={label} icon={<Icon size={19} weight="regular" />} active={location === href || (location === '/profile' && href === '/settings')} />)}
     </nav>
   </div>;
 }
@@ -81,7 +81,7 @@ function NavItem({ href, label, icon, active }: { href: string; label: string; i
   return <Link href={href} className="sidebar-link" aria-current={active ? 'page' : undefined} data-testid={`link-${href.slice(1)}`}>{icon}<span>{label}</span></Link>;
 }
 function MobileItem({ href, label, icon, active }: { href: string; label: string; icon: ReactNode; active: boolean }) {
-  const mobileLabel = label === 'Content library' ? 'Library' : label === 'Founder profile' ? 'Profile' : label;
+  const mobileLabel = label === 'Content library' ? 'Library' : label === 'Founder profile' ? 'Profile' : label === 'Shared skills' ? 'Skills' : label;
   return <Link href={href} aria-current={active ? 'page' : undefined} data-testid={`mobile-link-${href.slice(1)}`}>{icon}<span>{mobileLabel}</span></Link>;
 }
 

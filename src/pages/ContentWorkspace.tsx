@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowRight, Check, Copy, FileText, Microphone, VideoCamera, ListChecks, ArrowCounterClockwise, Question, FloppyDisk } from '@phosphor-icons/react';
+import { ArrowRight, Check, Copy, FileText, Microphone, VideoCamera, ListChecks, ArrowCounterClockwise, Question, FloppyDisk, Sparkle } from '@phosphor-icons/react';
 import { Link } from 'wouter';
 import { z } from 'zod';
 import { ApiError, demoDrafts, formatLabel, getJob, isDemo, platforms, startGeneration, startRepurpose, type ContentFormat, type DraftRecord, type Platform, type JobResponse } from '@/lib/content-api';
@@ -16,12 +16,13 @@ const formatOptions: { value: ContentFormat; label: string; hint: string }[] = [
   { value: 'talking_points', label: 'Talking points', hint: 'A flexible outline to speak from' },
 ];
 
-export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, skills: availableSkills }: { mode: 'create' | 'repurpose'; drafts: DraftRecord[]; onDraft: (draft: DraftRecord) => void; profile: FounderProfile; projects: WorkspaceProject[]; skills: WorkspaceSkill[] }) {
+export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, skills: availableSkills, workspaceProject }: { mode: 'create' | 'repurpose'; drafts: DraftRecord[]; onDraft: (draft: DraftRecord) => void; profile: FounderProfile; projects: WorkspaceProject[]; skills: WorkspaceSkill[]; workspaceProject?: WorkspaceProject }) {
   const [topic, setTopic] = useState('');
   const [objective, setObjective] = useState('');
   const [format, setFormat] = useState<ContentFormat>('written_post');
   const [platform, setPlatform] = useState<Platform>('LinkedIn');
-  const [project, setProject] = useState('');
+  const [project, setProject] = useState(workspaceProject?.id ?? '');
+  const [importedProjectIds, setImportedProjectIds] = useState<string[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [sourceId, setSourceId] = useState(() => new URLSearchParams(window.location.search).get('source') ?? '');
   const [activeDraftId, setActiveDraftId] = useState('');
@@ -32,9 +33,12 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
 
   const sourceDrafts = isDemo ? [...demoDrafts, ...drafts] : drafts;
   const selectedSource = sourceDrafts.find((draft) => draft.id === sourceId);
-  const selectedProject = projects.find((item) => item.id === project);
+  const selectedProject = workspaceProject ?? projects.find((item) => item.id === project);
+  const importedProjects = projects.filter((item) => importedProjectIds.includes(item.id) && item.id !== selectedProject?.id);
+  const contextFor = (item: WorkspaceProject) => [item.name, item.website && `Website: ${item.website}`, item.description, item.voice && `Startup-specific voice: ${item.voice}`, ...(item.documents ?? []).map((doc) => `Source: ${doc.name}\n${doc.text}`)].filter(Boolean).join('\n\n');
+  const combinedProjectContext = [selectedProject, ...importedProjects].filter((item): item is WorkspaceProject => Boolean(item)).map(contextFor).join('\n\n--- Imported startup context ---\n\n').slice(0, 60_000);
   const selectedSkillInstructions = availableSkills.filter((item) => skills.includes(item.id)).map((item) => `${item.name}: ${item.instructions}`);
-  const founderContext = Object.fromEntries(Object.entries(profile).filter(([, value]) => value.trim())) as Record<string, string>;
+  const founderContext = Object.fromEntries(Object.entries(profile).filter(([key, value]) => key !== 'company' && key !== 'companyDescription' && value.trim())) as Record<string, string>;
   const requestMutation = useMutation({
     mutationFn: async () => {
       if (mode === 'create') {
@@ -47,7 +51,7 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
           objective: valid.data.objective,
           skill_version_ids: [],
           founder_context: founderContext,
-          ...(selectedProject ? { project_context: `${selectedProject.name}: ${selectedProject.description}` } : {}),
+          ...(selectedProject ? { project_id: selectedProject.id, project_context: combinedProjectContext } : {}),
           ...(selectedSkillInstructions.length ? { custom_skill_instructions: selectedSkillInstructions } : {}),
         });
       }
@@ -63,6 +67,7 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
         objective: objective.trim(),
         skill_version_ids: [],
         founder_context: founderContext,
+        ...(selectedProject ? { project_id: selectedProject.id, project_context: combinedProjectContext } : {}),
         ...(selectedSkillInstructions.length ? { custom_skill_instructions: selectedSkillInstructions } : {}),
       });
     },
@@ -99,11 +104,13 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
       text: value.data.draft_content,
       demo: isDemo,
       updatedAt: new Date().toISOString(),
+      ...(workspaceProject ? { workspaceId: workspaceProject.id } : {}),
+      ...(!workspaceProject && selectedProject ? { workspaceId: selectedProject.id } : {}),
     };
     onDraft(record);
     setActiveDraftId(record.id);
     setCompleted(value.data);
-  }, [jobQuery.data, onDraft, platform, selectedSource, topic]);
+  }, [jobQuery.data, onDraft, platform, selectedSource, topic, workspaceProject]);
 
   const timedOut = Boolean(jobId && jobStarted && Date.now() - jobStarted >= 180_000 && !completed && jobQuery.data?.status === 'processing');
   const jobError = jobQuery.data?.status === 'error' ? jobQuery.data.error.message : '';
@@ -149,19 +156,22 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
             <label htmlFor="topic" className="label">What are you thinking about?</label>
             <textarea id="topic" rows={4} className="field resize-y leading-6" placeholder="A real moment, lesson, opinion, or question…" value={topic} onChange={(e) => setTopic(e.target.value)} data-testid="input-topic" required minLength={8} />
             <p className="mt-2 text-xs text-muted-foreground">Specific details help preserve your point of view. Avoid adding anything you cannot stand behind.</p>
+            {selectedProject && (selectedProject.documents?.length ?? 0) > 0 && <button type="button" className="mt-3 inline-flex min-h-9 items-center gap-2 border px-3 text-xs hover:bg-muted" onClick={() => { setTopic(`Find a useful, specific post idea in ${selectedProject.name}'s source library. Choose one concrete insight and write an original post grounded in the uploaded material.`); setObjective(`Turn a useful insight from ${selectedProject.name}'s source documents into a clear, founder-led social post.`); }}><Sparkle size={15} />Use my sources as the starting point</button>}
           </div>
           <div className="mb-6 grid gap-5 sm:grid-cols-2 form-columns">
-            <div><label htmlFor="project" className="label">Project context <span className="font-normal text-muted-foreground">(optional)</span></label>
+            {!workspaceProject && <div><label htmlFor="project" className="label">Write about <span className="font-normal text-muted-foreground">(optional)</span></label>
               <select className="field" id="project" value={project} onChange={(e) => setProject(e.target.value)} data-testid="select-project">
-                <option value="">No project selected</option>
+                <option value="">Me as a founder</option>
                 {projects.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
               </select>
-              {!projects.length && <p className="mt-1.5 text-xs text-muted-foreground">Add a project once in <Link href="/projects" className="underline">Projects</Link>.</p>}
-            </div>
+              {!projects.length && <p className="mt-1.5 text-xs text-muted-foreground">You can add startups later from <Link href="/projects" className="underline">Startups</Link>.</p>}
+            </div>}
+            {workspaceProject && <div className="flex items-end"><div className="w-full border-l-2 py-1 pl-3" style={{ borderColor: 'hsl(var(--ring))' }}><span className="eyebrow">Writing about</span><div className="mt-1 text-sm font-medium">{workspaceProject.name}</div></div></div>}
             <div><label htmlFor="platform" className="label">Platform</label><select className="field" id="platform" value={platform} onChange={(e) => setPlatform(e.target.value as Platform)} data-testid="select-platform">
               {platforms.map((item) => <option value={item} key={item}>{item}</option>)}
             </select></div>
           </div>
+          {workspaceProject && projects.length > 1 && <details className="mb-6 border px-4"><summary className="flex min-h-11 cursor-pointer items-center text-sm">Use context from another startup <span className="ml-2 text-xs text-muted-foreground">(optional)</span></summary><div className="grid gap-2 border-t py-3 sm:grid-cols-2" style={{ borderColor: 'hsl(var(--border))' }}>{projects.filter((item) => item.id !== workspaceProject.id).map((item) => <label key={item.id} className="flex min-h-9 items-center gap-2 text-sm"><input type="checkbox" checked={importedProjectIds.includes(item.id)} onChange={(event) => setImportedProjectIds((current) => event.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id))} />{item.name}</label>)}</div><p className="pb-3 text-xs text-muted-foreground">Selected context and source text will be included with this draft request.</p></details>}
         </>}
         <div className="mb-6">
           <div className="label mb-3">Format</div>

@@ -11,10 +11,14 @@ export type FounderProfile = {
   voice: string;
   topics: string;
   avoid: string;
+  linkedin: string;
+  x: string;
+  website: string;
 };
 
-export type WorkspaceProject = { id: string; name: string; description: string };
-export type WorkspaceSkill = { id: string; name: string; instructions: string };
+export type WorkspaceDocument = { id: string; name: string; text: string; addedAt: string };
+export type WorkspaceProject = { id: string; name: string; description: string; website?: string; voice?: string; documents?: WorkspaceDocument[] };
+export type WorkspaceSkill = { id: string; name: string; instructions: string; sourceName?: string };
 
 export type WorkspaceData = {
   drafts: DraftRecord[];
@@ -26,7 +30,7 @@ export type WorkspaceData = {
 
 export const emptyProfile: FounderProfile = {
   name: '', role: '', company: '', companyDescription: '', background: '', audience: '',
-  pointOfView: '', voice: '', topics: '', avoid: '',
+  pointOfView: '', voice: '', topics: '', avoid: '', linkedin: '', x: '', website: '',
 };
 
 export const emptyWorkspace: WorkspaceData = {
@@ -50,8 +54,8 @@ export function readWorkspace(ownerId: string): WorkspaceData {
       ...parsed,
       profile: { ...emptyProfile, ...parsed.profile },
       drafts: Array.isArray(parsed.drafts) ? parsed.drafts : [],
-      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
       skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+      projects: Array.isArray(parsed.projects) ? parsed.projects.map((project) => ({ ...project, website: project.website ?? '', voice: project.voice ?? '', documents: Array.isArray(project.documents) ? project.documents : [] })) : [],
     };
   } catch {
     return emptyWorkspace;

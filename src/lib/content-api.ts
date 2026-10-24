@@ -30,7 +30,7 @@ const jobSchema = z.discriminatedUnion('status', [
 ]);
 export type CompletedJob = z.infer<typeof jobSchema> & { status: 'completed' };
 export type JobResponse = z.infer<typeof jobSchema>;
-export type DraftRecord = { id: string; title: string; format: ContentFormat; platform: Platform; text: string; demo?: boolean; updatedAt?: string };
+export type DraftRecord = { id: string; title: string; format: ContentFormat; platform: Platform; text: string; demo?: boolean; updatedAt?: string; workspaceId?: string };
 
 export class ApiError extends Error {
   retryable: boolean;
@@ -97,7 +97,7 @@ export async function startGeneration(payload: {
 export async function startRepurpose(payload: {
   parent_content_id: string; target_format: ContentFormat; target_platform: Platform;
   objective: string; skill_version_ids: string[]; founder_context?: Record<string, string>;
-  custom_skill_instructions?: string[];
+  custom_skill_instructions?: string[]; project_id?: string; project_context?: string;
 }): Promise<{ job_id: string; message: string }> {
   if (isDemo) {
     const job_id = `demo-job-${++demoCounter}`;
