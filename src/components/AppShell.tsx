@@ -1,10 +1,12 @@
-import { type ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import { useLocation } from 'wouter';
 import { House, NotePencil, ArrowsLeftRight, Books, FolderSimple, Shapes, UserCircle, SignOut, Sun, Moon, CreditCard } from '@phosphor-icons/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { isDemo, authConfigured } from '@/lib/content-api';
 import { supabase } from '@/lib/supabase';
+
+const FieldnotesAvatar = lazy(() => import('@/components/FieldnotesAvatar').then((module) => ({ default: module.FieldnotesAvatar })));
 
 const links = [{ href: '/', label: 'Home', icon: House }];
 const spaceLinks = [
@@ -75,6 +77,7 @@ export function AppShell({ children, theme, onToggleTheme, accountType }: { chil
     <nav className="mobile-nav" aria-label="Primary navigation">
       {[links[0], spaceLinks[0], ...(accountType === 'founder_plus_startups' ? [spaceLinks[1]] : []), workspaceLinks[0], workspaceLinks[1], { href: '/billing', label: 'Plans', icon: CreditCard }].map(({ href, label, icon: Icon }) => <MobileItem key={href} href={href} label={label} icon={<Icon size={19} weight="regular" />} active={location === href || (location === '/profile' && href === '/settings') || location.startsWith('/startups/') && href === '/projects'} />)}
     </nav>
+    <Suspense fallback={null}><FieldnotesAvatar accountType={accountType} /></Suspense>
   </div>;
 }
 
