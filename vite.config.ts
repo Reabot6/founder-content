@@ -36,6 +36,11 @@ export default defineConfig(({ mode }) => {
                 return `/webhook/job-status?job_id=${jobId}`;
               },
             },
+            "/api/billing/checkout": {
+              target: apiBase,
+              changeOrigin: true,
+              rewrite: () => "/webhook/billing-checkout",
+            },
           }
         : {},
     },

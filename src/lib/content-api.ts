@@ -30,7 +30,7 @@ const jobSchema = z.discriminatedUnion('status', [
 ]);
 export type CompletedJob = z.infer<typeof jobSchema> & { status: 'completed' };
 export type JobResponse = z.infer<typeof jobSchema>;
-export type DraftRecord = { id: string; title: string; format: ContentFormat; platform: Platform; text: string; demo?: boolean };
+export type DraftRecord = { id: string; title: string; format: ContentFormat; platform: Platform; text: string; demo?: boolean; updatedAt?: string };
 
 export class ApiError extends Error {
   retryable: boolean;
@@ -77,7 +77,8 @@ async function requestJson(path: string, init: RequestInit): Promise<unknown> {
 
 export async function startGeneration(payload: {
   topic: string; content_format: ContentFormat; platform: Platform; objective: string;
-  skill_version_ids: string[]; project_id?: string;
+  skill_version_ids: string[]; project_id?: string; founder_context?: Record<string, string>;
+  project_context?: string; custom_skill_instructions?: string[];
 }): Promise<{ job_id: string; message: string }> {
   if (isDemo) {
     const job_id = `demo-job-${++demoCounter}`;
@@ -95,7 +96,8 @@ export async function startGeneration(payload: {
 
 export async function startRepurpose(payload: {
   parent_content_id: string; target_format: ContentFormat; target_platform: Platform;
-  objective: string; skill_version_ids: string[];
+  objective: string; skill_version_ids: string[]; founder_context?: Record<string, string>;
+  custom_skill_instructions?: string[];
 }): Promise<{ job_id: string; message: string }> {
   if (isDemo) {
     const job_id = `demo-job-${++demoCounter}`;
@@ -131,6 +133,24 @@ export async function getJob(jobId: string): Promise<JobResponse> {
   const parsed = jobSchema.safeParse(body);
   if (!parsed.success) throw new ApiError('The content service returned an invalid job status.', 'INVALID_RESPONSE', false);
   return parsed.data;
+}
+
+export async function startBillingCheckout(planId: string): Promise<{ checkout_url: string }> {
+  const body = await requestJson('/api/billing/checkout', {
+    method: 'POST',
+    body: JSON.stringify({
+      plan_id: planId,
+      success_url: `${window.location.origin}/billing?checkout=success`,
+      cancel_url: `${window.location.origin}/billing?checkout=cancelled`,
+    }),
+  });
+  const parsed = z.object({ status: z.literal('accepted'), data: z.object({ checkout_url: z.string().url() }) }).safeParse(body);
+  if (!parsed.success) throw new ApiError('Secure checkout is not connected yet. No payment was taken.', 'CHECKOUT_UNAVAILABLE', false);
+  const checkoutUrl = new URL(parsed.data.data.checkout_url);
+  if (checkoutUrl.protocol !== 'https:' || !/(^|\.)stripe\.com$/i.test(checkoutUrl.hostname)) {
+    throw new ApiError('The checkout service returned an invalid payment link.', 'INVALID_CHECKOUT_URL', false);
+  }
+  return { checkout_url: checkoutUrl.toString() };
 }
 
 export const demoDrafts: DraftRecord[] = [{

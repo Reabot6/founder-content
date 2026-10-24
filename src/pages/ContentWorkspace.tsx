@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowRight, Check, Copy, FileText, Microphone, VideoCamera, ListChecks, ArrowCounterClockwise, Question } from '@phosphor-icons/react';
+import { ArrowRight, Check, Copy, FileText, Microphone, VideoCamera, ListChecks, ArrowCounterClockwise, Question, FloppyDisk } from '@phosphor-icons/react';
 import { Link } from 'wouter';
 import { z } from 'zod';
 import { ApiError, demoDrafts, formatLabel, getJob, isDemo, platforms, startGeneration, startRepurpose, type ContentFormat, type DraftRecord, type Platform, type JobResponse } from '@/lib/content-api';
 import { Notice, LoadingLine } from '@/components/StatusNote';
 import { PageHeading } from '@/components/AppShell';
+import type { FounderProfile, WorkspaceProject, WorkspaceSkill } from '@/lib/workspace-store';
 
 const formatIcons = { written_post: FileText, short_video: VideoCamera, long_video: Microphone, talking_points: ListChecks };
 const formatOptions: { value: ContentFormat; label: string; hint: string }[] = [
@@ -15,14 +16,15 @@ const formatOptions: { value: ContentFormat; label: string; hint: string }[] = [
   { value: 'talking_points', label: 'Talking points', hint: 'A flexible outline to speak from' },
 ];
 
-export function ContentWorkspace({ mode, drafts, onDraft }: { mode: 'create' | 'repurpose'; drafts: DraftRecord[]; onDraft: (draft: DraftRecord) => void }) {
+export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, skills: availableSkills }: { mode: 'create' | 'repurpose'; drafts: DraftRecord[]; onDraft: (draft: DraftRecord) => void; profile: FounderProfile; projects: WorkspaceProject[]; skills: WorkspaceSkill[] }) {
   const [topic, setTopic] = useState('');
   const [objective, setObjective] = useState('');
   const [format, setFormat] = useState<ContentFormat>('written_post');
   const [platform, setPlatform] = useState<Platform>('LinkedIn');
   const [project, setProject] = useState('');
   const [skills, setSkills] = useState<string[]>([]);
-  const [sourceId, setSourceId] = useState('');
+  const [sourceId, setSourceId] = useState(() => new URLSearchParams(window.location.search).get('source') ?? '');
+  const [activeDraftId, setActiveDraftId] = useState('');
   const [jobId, setJobId] = useState('');
   const [jobStarted, setJobStarted] = useState<number | null>(null);
   const [localError, setLocalError] = useState('');
@@ -30,6 +32,9 @@ export function ContentWorkspace({ mode, drafts, onDraft }: { mode: 'create' | '
 
   const sourceDrafts = isDemo ? [...demoDrafts, ...drafts] : drafts;
   const selectedSource = sourceDrafts.find((draft) => draft.id === sourceId);
+  const selectedProject = projects.find((item) => item.id === project);
+  const selectedSkillInstructions = availableSkills.filter((item) => skills.includes(item.id)).map((item) => `${item.name}: ${item.instructions}`);
+  const founderContext = Object.fromEntries(Object.entries(profile).filter(([, value]) => value.trim())) as Record<string, string>;
   const requestMutation = useMutation({
     mutationFn: async () => {
       if (mode === 'create') {
@@ -40,8 +45,10 @@ export function ContentWorkspace({ mode, drafts, onDraft }: { mode: 'create' | '
           content_format: format,
           platform,
           objective: valid.data.objective,
-          skill_version_ids: skills,
-          ...(project ? { project_id: project } : {}),
+          skill_version_ids: [],
+          founder_context: founderContext,
+          ...(selectedProject ? { project_context: `${selectedProject.name}: ${selectedProject.description}` } : {}),
+          ...(selectedSkillInstructions.length ? { custom_skill_instructions: selectedSkillInstructions } : {}),
         });
       }
       if (!selectedSource) throw new ApiError('Choose a source draft before continuing.', 'INVALID_PAYLOAD', false);
@@ -54,7 +61,9 @@ export function ContentWorkspace({ mode, drafts, onDraft }: { mode: 'create' | '
         target_format: format,
         target_platform: platform,
         objective: objective.trim(),
-        skill_version_ids: skills,
+        skill_version_ids: [],
+        founder_context: founderContext,
+        ...(selectedSkillInstructions.length ? { custom_skill_instructions: selectedSkillInstructions } : {}),
       });
     },
     onSuccess: (result) => {
@@ -89,8 +98,10 @@ export function ContentWorkspace({ mode, drafts, onDraft }: { mode: 'create' | '
       platform,
       text: value.data.draft_content,
       demo: isDemo,
+      updatedAt: new Date().toISOString(),
     };
     onDraft(record);
+    setActiveDraftId(record.id);
     setCompleted(value.data);
   }, [jobQuery.data, onDraft, platform, selectedSource, topic]);
 
@@ -109,7 +120,7 @@ export function ContentWorkspace({ mode, drafts, onDraft }: { mode: 'create' | '
   return <div className="page-wrap">
     <PageHeading kicker={mode === 'create' ? 'New generation' : 'Intentional adaptation'} title={mode === 'create' ? 'Give the idea a shape.' : 'Carry the idea forward.'} description={mode === 'create' ? 'Start with something you have actually seen, learned, or changed your mind about.' : 'Keep the original idea. Change the delivery with purpose.'} />
     {isDemo && <div className="mb-6"><Notice testId="notice-demo">Demo mode is on. Results use local sample data and are not generated by a production model.</Notice></div>}
-    {mode === 'repurpose' && !sourceDrafts.length && <div className="mb-6"><Notice testId="notice-no-source">There is no source content available yet. This API has no content listing endpoint. Generate a draft in this session first, or enable clearly labeled demo mode to explore with a local fixture.</Notice></div>}
+    {mode === 'repurpose' && !sourceDrafts.length && <div className="mb-6"><Notice testId="notice-no-source">Your library is empty. Create a draft first, then come back to adapt it.</Notice></div>}
     {completed ? <ResultEditor
       content={completed.draft_content}
       format={completed.content_format}
@@ -117,12 +128,13 @@ export function ContentWorkspace({ mode, drafts, onDraft }: { mode: 'create' | '
       evaluator={completed.evaluator_result}
       appliedSkills={completed.applied_skill_versions}
       demo={isDemo}
-      onNew={() => { setJobId(''); setCompleted(null); setJobStarted(null); setLocalError(''); }}
-      onBack={() => { setJobId(''); setCompleted(null); setJobStarted(null); }}
+      onSave={(text) => { const draft = drafts.find((item) => item.id === activeDraftId); if (draft) onDraft({ ...draft, text, updatedAt: new Date().toISOString() }); }}
+      onNew={() => { setJobId(''); setCompleted(null); setJobStarted(null); setLocalError(''); setActiveDraftId(''); }}
+      onBack={() => { setJobId(''); setCompleted(null); setJobStarted(null); setActiveDraftId(''); }}
     /> : <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(270px,.72fr)]">
       <form className="panel p-5 sm:p-7" onSubmit={(event) => { event.preventDefault(); setLocalError(''); requestMutation.mutate(); }} data-testid={`form-${mode}`}>
         {mode === 'repurpose' && <section className="mb-7">
-          <div className="mb-3 flex items-center justify-between"><label className="label mb-0" htmlFor="source-select">Source content</label><span className="eyebrow">{isDemo ? 'Demo fixture' : 'This session'}</span></div>
+          <div className="mb-3 flex items-center justify-between"><label className="label mb-0" htmlFor="source-select">Source content</label><span className="eyebrow">Saved drafts</span></div>
           {sourceDrafts.length ? <select id="source-select" className="field" value={sourceId} onChange={(e) => setSourceId(e.target.value)} data-testid="select-source">
             <option value="">Choose a draft</option>
             {sourceDrafts.map((draft) => <option key={draft.id} value={draft.id}>{draft.title} · {formatLabel(draft.format)}</option>)}
@@ -142,9 +154,9 @@ export function ContentWorkspace({ mode, drafts, onDraft }: { mode: 'create' | '
             <div><label htmlFor="project" className="label">Project context <span className="font-normal text-muted-foreground">(optional)</span></label>
               <select className="field" id="project" value={project} onChange={(e) => setProject(e.target.value)} data-testid="select-project">
                 <option value="">No project selected</option>
-                {isDemo && <option value="demo-project-studio">Northstar Studio (demo)</option>}
+                {projects.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
               </select>
-              {!isDemo && <p className="mt-1.5 text-xs text-muted-foreground">Project selection is unavailable until project data endpoints exist.</p>}
+              {!projects.length && <p className="mt-1.5 text-xs text-muted-foreground">Add a project once in <Link href="/projects" className="underline">Projects</Link>.</p>}
             </div>
             <div><label htmlFor="platform" className="label">Platform</label><select className="field" id="platform" value={platform} onChange={(e) => setPlatform(e.target.value as Platform)} data-testid="select-platform">
               {platforms.map((item) => <option value={item} key={item}>{item}</option>)}
@@ -165,10 +177,9 @@ export function ContentWorkspace({ mode, drafts, onDraft }: { mode: 'create' | '
           <input id="objective" className="field" value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="e.g. Share a lesson with other early-stage founders" data-testid="input-objective" required />
         </div>
         <section className="mb-6 border-t pt-5" style={{ borderColor: 'hsl(var(--border))' }}>
-          <div className="flex items-center justify-between"><div><div className="text-sm font-medium">Writing skills</div><div className="mt-1 text-xs text-muted-foreground">{isDemo ? 'Optional local examples' : 'Skill selection is unavailable in live mode.'}</div></div><Question size={18} weight="regular" className="text-muted-foreground" aria-hidden="true" /></div>
-          {isDemo ? <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-            {['Clear openings', 'Founder story arc'].map((name, index) => <label key={name} className="flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={skills.includes(`demo-skill-${index + 1}`)} onChange={(e) => setSkills((current) => e.target.checked ? [...current, `demo-skill-${index + 1}`] : current.filter((skill) => skill !== `demo-skill-${index + 1}`))} data-testid={`checkbox-skill-${index + 1}`} />{name}<span className="text-[9px] uppercase text-amber-700">demo</span></label>)}
-          </div> : <p className="mt-3 text-xs text-muted-foreground">No skill IDs will be sent. Manageable skill versions are not yet exposed by the API.</p>}
+          <div className="flex items-center justify-between"><div><div className="text-sm font-medium">Writing skills</div><div className="mt-1 text-xs text-muted-foreground">Use your saved frameworks for this draft.</div></div><Question size={18} weight="regular" className="text-muted-foreground" aria-hidden="true" /></div>
+          {availableSkills.length ? <div className="mt-3 grid gap-2 sm:grid-cols-2">{availableSkills.map((skill) => <label key={skill.id} className="flex min-h-10 items-center gap-2 rounded border px-3 text-sm"><input type="checkbox" checked={skills.includes(skill.id)} onChange={(e) => setSkills((current) => e.target.checked ? [...current, skill.id] : current.filter((id) => id !== skill.id))} />{skill.name}</label>)}</div> : <Link href="/skills" className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm underline decoration-border underline-offset-4">Add a writing skill <ArrowRight size={14} /></Link>}
+          {selectedSkillInstructions.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Selected instructions will be included with this request.</p>}
         </section>
         {localError && <div className="mb-4"><Notice kind="error" testId="error-request">{localError} {requestMutation.error instanceof ApiError && requestMutation.error.retryable && <span> You can try again; your inputs are preserved.</span>}</Notice></div>}
         {jobError && <div className="mb-4"><Notice kind="error" testId="error-job">{jobError} {jobQuery.data?.status === 'error' && jobQuery.data.error.retryable ? 'Retrying is available.' : ''}</Notice></div>}
@@ -194,22 +205,23 @@ export function ContentWorkspace({ mode, drafts, onDraft }: { mode: 'create' | '
           <ol className="grid gap-3 text-sm">
             <li className="flex gap-3"><span className="mono text-xs text-muted-foreground">01</span><span>Bring a real idea or source draft.</span></li>
             <li className="flex gap-3"><span className="mono text-xs text-muted-foreground">02</span><span>Choose a format and a clear objective.</span></li>
-            <li className="flex gap-3"><span className="mono text-xs text-muted-foreground">03</span><span>Review the draft. Your edits stay local.</span></li>
+            <li className="flex gap-3"><span className="mono text-xs text-muted-foreground">03</span><span>Review and save. Your draft stays in your library.</span></li>
           </ol>
         </div>
         <Link href="/settings" className="flex items-center justify-between border p-4 text-sm hover:bg-muted" data-testid="link-add-context">
-          <span><span className="block font-medium">Build your founder context</span><span className="mt-1 block text-xs text-muted-foreground">Keep your profile on this device</span></span><ArrowRight size={16} weight="regular" />
+          <span><span className="block font-medium">Your founder context</span><span className="mt-1 block text-xs text-muted-foreground">Included with each generation request</span></span><ArrowRight size={16} weight="regular" />
         </Link>
       </aside>
     </div>}
   </div>;
 }
 
-function ResultEditor({ content, format, platform, evaluator, appliedSkills, demo, onNew, onBack }: {
-  content: string; format: ContentFormat; platform: Platform; evaluator: { status: string; confidence_score?: number; reasoning?: string }; appliedSkills: string[]; demo: boolean; onNew: () => void; onBack: () => void;
+function ResultEditor({ content, format, platform, evaluator, appliedSkills, demo, onNew, onBack, onSave }: {
+  content: string; format: ContentFormat; platform: Platform; evaluator: { status: string; confidence_score?: number; reasoning?: string }; appliedSkills: string[]; demo: boolean; onNew: () => void; onBack: () => void; onSave: (text: string) => void;
 }) {
   const [draft, setDraft] = useState(content);
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
   async function copyDraft() {
     try {
       await navigator.clipboard.writeText(draft);
@@ -226,8 +238,8 @@ function ResultEditor({ content, format, platform, evaluator, appliedSkills, dem
     </div>
     {demo && <div className="mb-5"><Notice testId="notice-demo-result">Demonstration output. A production model was not used.</Notice></div>}
     <label htmlFor="draft-editor" className="label">Review and edit</label>
-    <textarea id="draft-editor" className="field min-h-[380px] resize-y whitespace-pre-wrap px-5 py-5 font-serif text-[17px] leading-[1.8] sm:px-8 sm:py-7 sm:text-lg" value={draft} onChange={(e) => setDraft(e.target.value)} data-testid="input-draft-editor" />
-    <p className="mt-2 text-xs text-muted-foreground" data-testid="text-local-edit-note">Edits are held in this page only. There is no save or publish endpoint.</p>
+    <textarea id="draft-editor" className="field min-h-[380px] resize-y whitespace-pre-wrap px-5 py-5 font-serif text-[17px] leading-[1.8] sm:px-8 sm:py-7 sm:text-lg" value={draft} onChange={(e) => { setDraft(e.target.value); setSaved(false); }} data-testid="input-draft-editor" />
+    <div className="mt-3 flex flex-wrap items-center gap-3"><button type="button" className="button-press inline-flex min-h-10 items-center gap-2 border px-3 text-sm" onClick={() => { onSave(draft); setSaved(true); }}><FloppyDisk size={16} />Save edits</button>{saved && <span role="status" className="inline-flex items-center gap-1 text-sm text-muted-foreground"><Check size={15} />Saved to this device</span>}<span className="text-xs text-muted-foreground">Private draft · not published</span></div>
     <div className="mt-6 grid gap-4 sm:grid-cols-2">
       <div className="panel p-4"><div className="eyebrow mb-2">Evaluator</div><div className="text-sm font-medium" data-testid="text-evaluator-status">{evaluator.status}</div>{typeof evaluator.confidence_score === 'number' && <div className="mt-1 text-xs text-muted-foreground">Confidence: {Math.round(evaluator.confidence_score * 100)}%</div>}{evaluator.reasoning && <p className="mt-2 text-xs leading-5 text-muted-foreground">{evaluator.reasoning}</p>}</div>
       <div className="panel p-4"><div className="eyebrow mb-2">Applied skills</div>{appliedSkills.length ? <p className="text-xs text-muted-foreground">{appliedSkills.join(', ')}</p> : <p className="text-xs text-muted-foreground">{demo ? 'No local skills were selected.' : 'No applied skill versions returned.'}</p>}</div>

@@ -13,6 +13,10 @@
       "destination": "https://heroic-wonder-production-0ffd.up.railway.app/webhook/job-status"
     },
     {
+      "source": "/api/billing/checkout",
+      "destination": "https://heroic-wonder-production-0ffd.up.railway.app/webhook/billing-checkout"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

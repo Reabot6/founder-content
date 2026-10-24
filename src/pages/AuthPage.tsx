@@ -38,7 +38,7 @@ export function AuthPage({ mode }: { mode: 'sign-in' | 'sign-up' }) {
   }
   return <main className="grid min-h-[100dvh] lg:grid-cols-[minmax(300px,.88fr)_1.12fr]">
     <section className="flex flex-col justify-between border-r p-7 sm:p-12 lg:p-14" style={{ borderColor: 'hsl(var(--border))', background: 'hsl(var(--card))' }}>
-      <Link href="/" className="flex items-center gap-3" data-testid="link-auth-brand"><span className="grid h-8 w-8 place-items-center border bg-background serif text-lg">F</span><span className="text-sm font-semibold">Fieldnotes · Founder Studio</span></Link>
+      <Link href="/" className="flex items-center gap-3" data-testid="link-auth-brand"><img src="/logo.svg" alt="" className="h-9 w-9" /><span className="text-sm font-semibold">Fieldnotes · Founder Studio</span></Link>
       <div className="my-16 max-w-md"><div className="eyebrow mb-4">A private content workspace</div><h1 className="serif text-5xl leading-[1.04] tracking-[-.03em]">Keep the thinking yours.</h1><p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground">Work from real context. Shape original posts and spoken scripts. Adapt an idea on purpose.</p></div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground"><Key size={16} weight="regular" />Your password is handled by Supabase Auth.</div>
     </section>

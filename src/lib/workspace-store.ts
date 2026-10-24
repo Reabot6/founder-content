@@ -1,0 +1,72 @@
+import type { ContentFormat, DraftRecord, Platform } from './content-api';
+
+export type FounderProfile = {
+  name: string;
+  role: string;
+  company: string;
+  companyDescription: string;
+  background: string;
+  audience: string;
+  pointOfView: string;
+  voice: string;
+  topics: string;
+  avoid: string;
+};
+
+export type WorkspaceProject = { id: string; name: string; description: string };
+export type WorkspaceSkill = { id: string; name: string; instructions: string };
+
+export type WorkspaceData = {
+  drafts: DraftRecord[];
+  profile: FounderProfile;
+  projects: WorkspaceProject[];
+  skills: WorkspaceSkill[];
+  onboardingComplete: boolean;
+};
+
+export const emptyProfile: FounderProfile = {
+  name: '', role: '', company: '', companyDescription: '', background: '', audience: '',
+  pointOfView: '', voice: '', topics: '', avoid: '',
+};
+
+export const emptyWorkspace: WorkspaceData = {
+  drafts: [], profile: emptyProfile, projects: [], skills: [], onboardingComplete: false,
+};
+
+const storagePrefix = 'fieldnotes-workspace-v2:';
+
+export function readWorkspace(ownerId: string): WorkspaceData {
+  try {
+    const raw = localStorage.getItem(`${storagePrefix}${ownerId}`);
+    if (!raw) {
+      const legacyProfile = localStorage.getItem('founder-studio-profile-v1');
+      if (!legacyProfile) return emptyWorkspace;
+      const parsedProfile = JSON.parse(legacyProfile) as Partial<FounderProfile>;
+      return { ...emptyWorkspace, profile: { ...emptyProfile, ...parsedProfile } };
+    }
+    const parsed = JSON.parse(raw) as Partial<WorkspaceData>;
+    return {
+      ...emptyWorkspace,
+      ...parsed,
+      profile: { ...emptyProfile, ...parsed.profile },
+      drafts: Array.isArray(parsed.drafts) ? parsed.drafts : [],
+      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+      skills: Array.isArray(parsed.skills) ? parsed.skills : [],
+    };
+  } catch {
+    return emptyWorkspace;
+  }
+}
+
+export function writeWorkspace(ownerId: string, value: WorkspaceData): boolean {
+  try {
+    localStorage.setItem(`${storagePrefix}${ownerId}`, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function makeDraft(input: { id: string; title: string; format: ContentFormat; platform: Platform; text: string; demo?: boolean }): DraftRecord {
+  return { ...input, updatedAt: new Date().toISOString() };
+}
