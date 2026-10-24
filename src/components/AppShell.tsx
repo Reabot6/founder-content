@@ -25,10 +25,11 @@ function NavLinks({ close }: { close?: () => void }) {
   ))}</>;
 }
 
-export function AppShell({ children, theme, onToggleTheme }: { children: ReactNode; theme: 'light' | 'dark'; onToggleTheme: () => void }) {
+export function AppShell({ children, theme, onToggleTheme, accountType }: { children: ReactNode; theme: 'light' | 'dark'; onToggleTheme: () => void; accountType: 'founder' | 'founder_plus_startups' | null }) {
   const [location] = useLocation();
   const reducedMotion = useReducedMotion();
-  const title = [...links, ...spaceLinks, ...workspaceLinks].find((item) => item.href === location || (location === '/profile' && item.href === '/settings'))?.label ?? (location.startsWith('/startups/') ? 'Startup workspace' : location === '/create' ? 'Create' : location === '/repurpose' ? 'Repurpose' : location === '/library' ? 'Content library' : 'Workspace');
+  const visibleSpaceLinks = spaceLinks.filter(({ href }) => href !== '/projects' || accountType === 'founder_plus_startups');
+  const title = [...links, ...visibleSpaceLinks, ...workspaceLinks].find((item) => item.href === location || (location === '/profile' && item.href === '/settings'))?.label ?? (location.startsWith('/startups/') ? 'Startup workspace' : location === '/create' ? 'Create' : location === '/repurpose' ? 'Repurpose' : location === '/library' ? 'Content library' : 'Workspace');
   async function signOut() {
     if (supabase) await supabase.auth.signOut();
   }
@@ -41,7 +42,7 @@ export function AppShell({ children, theme, onToggleTheme }: { children: ReactNo
       <div className="eyebrow px-3 mb-2">Home</div>
       <nav className="grid gap-1"><NavLinks /></nav>
       <div className="eyebrow px-3 mb-2 mt-8">Your spaces</div>
-      <div className="grid gap-1">{spaceLinks.map(({ href, label, icon: Icon }) => <NavItem key={href} href={href} label={label} icon={<Icon size={18} weight="regular" />} active={location === href || location.startsWith('/startups/') && href === '/projects'} />)}</div>
+      <div className="grid gap-1">{visibleSpaceLinks.map(({ href, label, icon: Icon }) => <NavItem key={href} href={href} label={label} icon={<Icon size={18} weight="regular" />} active={location === href || location.startsWith('/startups/') && href === '/projects'} />)}</div>
       <div className="eyebrow px-3 mb-2 mt-8">Build context</div>
       <div className="grid gap-1">
         {workspaceLinks.map(({ href, label, icon: Icon }) => <NavItem key={href} href={href} label={label} icon={<Icon size={18} weight="regular" />} active={location === href || (location === '/profile' && href === '/settings')} />)}
@@ -72,7 +73,7 @@ export function AppShell({ children, theme, onToggleTheme }: { children: ReactNo
       </AnimatePresence>
     </main>
     <nav className="mobile-nav" aria-label="Primary navigation">
-      {[links[0], spaceLinks[0], spaceLinks[1], workspaceLinks[0], workspaceLinks[1], { href: '/billing', label: 'Plans', icon: CreditCard }].map(({ href, label, icon: Icon }) => <MobileItem key={href} href={href} label={label} icon={<Icon size={19} weight="regular" />} active={location === href || (location === '/profile' && href === '/settings') || location.startsWith('/startups/') && href === '/projects'} />)}
+      {[links[0], spaceLinks[0], ...(accountType === 'founder_plus_startups' ? [spaceLinks[1]] : []), workspaceLinks[0], workspaceLinks[1], { href: '/billing', label: 'Plans', icon: CreditCard }].map(({ href, label, icon: Icon }) => <MobileItem key={href} href={href} label={label} icon={<Icon size={19} weight="regular" />} active={location === href || (location === '/profile' && href === '/settings') || location.startsWith('/startups/') && href === '/projects'} />)}
     </nav>
   </div>;
 }

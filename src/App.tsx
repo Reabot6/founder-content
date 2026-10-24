@@ -40,7 +40,7 @@ function Router({ workspace, updateWorkspace, sessionReady, signedIn, theme, onT
     <Switch>
       <Route path="/sign-in" component={() => <AuthPage mode="sign-in" />} />
       <Route path="/sign-up" component={() => <AuthPage mode="sign-up" />} />
-      <Route path="/onboarding" component={() => <PrivatePage {...privateProps}><OnboardingPage profile={workspace.profile} onProfile={(profile) => updateWorkspace((current) => ({ ...current, profile }))} projects={workspace.projects} onProjects={(projects) => updateWorkspace((current) => ({ ...current, projects }))} onComplete={(accountType) => updateWorkspace((current) => ({ ...current, accountType, onboardingComplete: true }))} /></PrivatePage>} />
+      <Route path="/onboarding" component={() => <PrivatePage {...privateProps}><OnboardingPage profile={workspace.profile} onProfile={(profile) => updateWorkspace((current) => ({ ...current, profile }))} onComplete={(accountType) => updateWorkspace((current) => ({ ...current, accountType, onboardingComplete: true }))} /></PrivatePage>} />
       <Route path="/" component={() => <PrivatePage {...privateProps}><HomePage accountType={workspace.accountType} profile={workspace.profile} projects={workspace.projects} skills={workspace.skills} /></PrivatePage>} />
       <Route path="/founder" component={() => <PrivatePage {...privateProps}><FounderWorkspacePage drafts={workspace.drafts.filter((draft) => !draft.workspaceId || draft.workspaceId === 'founder')} profile={workspace.profile} /></PrivatePage>} />
       <Route path="/create" component={() => { const project = workspace.projects.find((item) => item.id === new URLSearchParams(window.location.search).get('startup')); const drafts = project ? workspace.drafts.filter((draft) => draft.workspaceId === project.id) : workspace.drafts.filter((draft) => !draft.workspaceId || draft.workspaceId === 'founder'); return <PrivatePage {...privateProps}><ContentWorkspace mode="create" drafts={drafts} onDraft={addDraft} profile={workspace.profile} projects={workspace.projects} skills={workspace.skills} workspaceProject={project} founderWorkspace={!project} /></PrivatePage>; }} />
@@ -68,8 +68,9 @@ function PrivatePage({ children, sessionReady, signedIn, onboardingComplete, acc
   if (authConfigured && !isDemo && !signedIn) return <main className="grid min-h-[70dvh] place-items-center p-6"><div className="max-w-md"><div className="eyebrow mb-3">Private workspace</div><h1 className="serif text-4xl">Sign in to continue.</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Your founder workspace is private. Sign in with Supabase Auth to use live content requests.</p><Link href="/sign-in" className="button-press mt-5 inline-flex min-h-10 items-center bg-primary px-4 text-sm text-primary-foreground" data-testid="link-gate-sign-in">Go to sign in</Link></div></main>;
   if ((!onboardingComplete || !accountType) && location !== '/onboarding') return <Redirect to="/onboarding" />;
   if (onboardingComplete && accountType && location === '/onboarding') return <Redirect to="/" />;
+  if (onboardingComplete && accountType === 'founder' && (location === '/projects' || location.startsWith('/startups/'))) return <Redirect to="/billing" />;
   if (location === '/onboarding') return <>{children}</>;
-  return <AppShell theme={theme} onToggleTheme={onToggleTheme}>{children}</AppShell>;
+  return <AppShell theme={theme} onToggleTheme={onToggleTheme} accountType={accountType}>{children}</AppShell>;
 }
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {
