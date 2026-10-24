@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => {
               changeOrigin: true,
               rewrite: (path) => {
                 const url = new URL(path, "http://x");
-                const jobId = url.searchParams.get("job_id") ?? "";
+                const jobId = encodeURIComponent(url.searchParams.get("job_id") ?? "");
                 return `/webhook/job-status?job_id=${jobId}`;
               },
             },

@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/content/generate",
+      "destination": "https://heroic-wonder-production-0ffd.up.railway.app/webhook/generate-content"
+    },
+    {
+      "source": "/api/content/repurpose",
+      "destination": "https://heroic-wonder-production-0ffd.up.railway.app/webhook/repurpose-content"
+    },
+    {
+      "source": "/api/content/job",
+      "destination": "https://heroic-wonder-production-0ffd.up.railway.app/webhook/job-status"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

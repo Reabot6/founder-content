@@ -127,7 +127,7 @@ export async function getJob(jobId: string): Promise<JobResponse> {
       },
     };
   }
-  const body = await requestJson(`/api/jobs/${encodeURIComponent(jobId)}`, { method: 'GET' });
+  const body = await requestJson(`/api/content/job?job_id=${encodeURIComponent(jobId)}`, { method: 'GET' });
   const parsed = jobSchema.safeParse(body);
   if (!parsed.success) throw new ApiError('The content service returned an invalid job status.', 'INVALID_RESPONSE', false);
   return parsed.data;
