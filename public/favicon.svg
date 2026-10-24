@@ -1,5 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" rx="15" fill="#28342C"/>
-  <path d="M19 16h28v6H26v9h17v6H26v11h-7V16Z" fill="#F7F4EC"/>
-  <circle cx="47" cy="46" r="4" fill="#C79B59"/>
+  <defs>
+    <linearGradient id="shell" x1="10" y1="8" x2="51" y2="59" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#829681"/><stop offset=".46" stop-color="#405A45"/><stop offset="1" stop-color="#1B2B21"/>
+    </linearGradient>
+    <linearGradient id="face" x1="22" y1="20" x2="44" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFEF7"/><stop offset="1" stop-color="#E2DDCF"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="25" y1="1" x2="38" y2="17" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4D594"/><stop offset="1" stop-color="#B77A34"/>
+    </linearGradient>
+    <filter id="shadow" x="4" y="6" width="58" height="60" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="18" fill="#25362A"/>
+  <ellipse cx="33" cy="57" rx="19" ry="3" fill="#101B13" fill-opacity=".55" filter="url(#shadow)"/>
+  <path d="M29 15c-4-7-1-12 5-11 4 1 5 5 4 10-3 0-6 0-9 1Z" fill="url(#leaf)"/>
+  <path d="M30 13c2-3 4-5 7-7" stroke="#FFF5D9" stroke-opacity=".78" stroke-width="1.2" stroke-linecap="round"/>
+  <ellipse cx="32" cy="37" rx="23" ry="25" fill="url(#shell)" stroke="#17251B" stroke-width="1.5"/>
+  <path d="M12 32c2-12 10-18 20-18 7 0 13 3 17 9-5-3-10-4-17-2-10 2-15 9-16 20l-4-1v-8Z" fill="#FFF" fill-opacity=".11"/>
+  <ellipse cx="32" cy="36" rx="16" ry="19" fill="url(#face)" stroke="#DCD6C8"/>
+  <ellipse cx="26" cy="34" rx="1.8" ry="2.8" fill="#293A2D"/>
+  <ellipse cx="38" cy="34" rx="1.8" ry="2.8" fill="#293A2D"/>
+  <circle cx="26.6" cy="33.2" r=".65" fill="#FFF"/>
+  <circle cx="38.6" cy="33.2" r=".65" fill="#FFF"/>
+  <path d="M28 41c2.4 2.4 5.6 2.4 8 0" stroke="#526B55" stroke-width="1.6" stroke-linecap="round"/>
+  <ellipse cx="19.5" cy="39" rx="2.4" ry="1.4" fill="#D99076" fill-opacity=".42"/>
+  <ellipse cx="44.5" cy="39" rx="2.4" ry="1.4" fill="#D99076" fill-opacity=".42"/>
 </svg>

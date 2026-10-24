@@ -69,7 +69,7 @@ export function AppShell({ children, theme, onToggleTheme, accountType }: { chil
         </div>
       </header>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={location} className="route-screen" initial={reducedMotion ? false : { opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={reducedMotion ? undefined : { opacity: 0, y: -3 }} transition={{ duration: reducedMotion ? 0 : 0.19, ease: 'easeOut' }}>
+        <motion.div key={location} className="route-screen" initial={reducedMotion ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={reducedMotion ? undefined : { opacity: 0, y: -8 }} transition={{ duration: reducedMotion ? 0 : 0.28, ease: 'easeOut' }}>
           {children}
         </motion.div>
       </AnimatePresence>

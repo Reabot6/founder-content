@@ -28,7 +28,7 @@ export function FieldnotesAvatar({ size = 58, accountType }: { size?: number; ac
   const [reducedMotion, setReducedMotion] = useState(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const mascotButton = useRef<HTMLButtonElement>(null);
   const announcementTimer = useRef<number | undefined>(undefined);
-  const { rive, RiveComponent } = useRive({ src: '/fieldnotes-mascot.riv', autoplay: false, artboard: 'Fieldnotes Mascot' }, { shouldResizeCanvasToContainer: true });
+  const { rive, RiveComponent } = useRive({ src: '/fieldnotes-mascot.riv', autoplay: false, artboard: 'Lilo' }, { shouldResizeCanvasToContainer: true });
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -107,7 +107,7 @@ export function FieldnotesAvatar({ size = 58, accountType }: { size?: number; ac
       type="button"
       ref={mascotButton}
       className={`fieldnotes-mascot mood-${mood}`}
-      aria-label={isOpen ? 'Close Fieldnotes help' : 'Open Fieldnotes help and find something'}
+      aria-label={isOpen ? 'Close Lilo help' : 'Open Lilo, your Fieldnotes guide'}
       aria-expanded={isOpen}
       aria-controls={isOpen ? 'fieldnotes-help-panel' : undefined}
       onClick={toggleHelp}
@@ -117,11 +117,11 @@ export function FieldnotesAvatar({ size = 58, accountType }: { size?: number; ac
       onBlur={() => { if (!isOpen) setMood('idle'); }}
     >
       <span className="fieldnotes-mascot-art" aria-hidden="true"><RiveComponent /></span>
-      <span className="fieldnotes-mascot-hover" aria-hidden="true">Find a feature · ask me</span>
+      <span className="fieldnotes-mascot-hover" aria-hidden="true">Ask Lilo · find a feature</span>
     </button>
     {isOpen && <section className="fieldnotes-help-panel" id="fieldnotes-help-panel" aria-label="Fieldnotes help">
-      <div className="fieldnotes-help-heading"><div><span className="fieldnotes-mascot-tip-label">Your Fieldnotes guide</span><h2 className="serif mt-1 text-xl">What can I help you find?</h2></div><button type="button" className="fieldnotes-mascot-dismiss" onClick={toggleHelp} aria-label="Close help">×</button></div>
-      <label className="fieldnotes-help-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" /></svg><span className="sr-only">Search help topics</span><input value={query} onChange={(event) => { setQuery(event.target.value); setMood(event.target.value ? 'thinking' : 'curious'); setExpandedQuestion(''); }} placeholder="Search features or ask a question" /></label>
+      <div className="fieldnotes-help-heading"><div><span className="fieldnotes-mascot-tip-label">Meet Lilo, your guide</span><h2 className="serif mt-1 text-xl">What can I help you find?</h2></div><button type="button" className="fieldnotes-mascot-dismiss" onClick={toggleHelp} aria-label="Close Lilo help">×</button></div>
+      <label className="fieldnotes-help-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" /></svg><span className="sr-only">Search help topics</span><input value={query} onChange={(event) => { setQuery(event.target.value); setMood(event.target.value ? 'thinking' : 'curious'); setExpandedQuestion(''); }} placeholder="Search features or ask Lilo" /></label>
       <div className="fieldnotes-help-list" role="list">
         {filteredItems.length ? filteredItems.map((item) => <article className="fieldnotes-help-item" key={item.question} role="listitem">
           <button type="button" className="fieldnotes-help-question" aria-expanded={expandedQuestion === item.question} onClick={() => { setExpandedQuestion((current) => current === item.question ? '' : item.question); setMood('happy'); }}>{item.question}<span aria-hidden="true">{expandedQuestion === item.question ? '−' : '+'}</span></button>

@@ -1,0 +1,23 @@
+{
+  "name": "Fieldnotes",
+  "short_name": "Fieldnotes",
+  "description": "Founder writing, in your voice.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ec",
+  "theme_color": "#f7f4ec",
+  "icons": [
+    {
+      "src": "/lilo-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/lilo-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
