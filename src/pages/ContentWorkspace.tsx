@@ -75,8 +75,12 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
       setCompleted(null);
       setJobStarted(Date.now());
       setJobId(result.job_id);
+      window.dispatchEvent(new CustomEvent('fieldnotes:mascot', { detail: { mood: 'thinking' } }));
     },
-    onError: (error: Error) => setLocalError(error.message),
+    onError: (error: Error) => {
+      setLocalError(error.message);
+      window.dispatchEvent(new CustomEvent('fieldnotes:mascot', { detail: { mood: 'curious', message: 'Check the note above, then adjust your request.' } }));
+    },
   });
 
   const jobQuery = useQuery({
@@ -108,11 +112,17 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
     onDraft(record);
     setActiveDraftId(record.id);
     setCompleted(value.data);
+    window.dispatchEvent(new CustomEvent('fieldnotes:mascot', { detail: { mood: 'happy', message: 'Your draft is ready when you are.' } }));
   }, [jobQuery.data, onDraft, platform, selectedSource, topic, workspaceProject]);
 
   const timedOut = Boolean(jobId && jobStarted && Date.now() - jobStarted >= 180_000 && !completed && jobQuery.data?.status === 'processing');
   const jobError = jobQuery.data?.status === 'error' ? jobQuery.data.error.message : '';
   const loading = requestMutation.isPending || (Boolean(jobId) && !completed && !jobError && !timedOut && !jobQuery.isError);
+
+  useEffect(() => {
+    if (!jobId || !(jobError || timedOut || jobQuery.isError)) return;
+    window.dispatchEvent(new CustomEvent('fieldnotes:mascot', { detail: { mood: 'curious', message: 'The draft didn’t finish. Check the note above and try again.' } }));
+  }, [jobId, jobError, timedOut, jobQuery.isError]);
 
   function retryRequest() {
     setJobId('');

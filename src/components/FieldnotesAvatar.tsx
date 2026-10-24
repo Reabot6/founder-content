@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRive } from '@rive-app/react-webgl2';
 import { Link, useLocation } from 'wouter';
 
 type HelpItem = { question: string; answer: string; href: string; link: string; startupOnly?: boolean };
@@ -15,7 +16,7 @@ const helpItems: HelpItem[] = [
 ];
 
 type Mood = 'idle' | 'curious' | 'thinking' | 'happy';
-const interactiveSelector = 'a, button, input, textarea, select, summary, [role="button"], [contenteditable="true"]';
+const riveAnimation: Record<Mood, string> = { idle: 'Idle', curious: 'Curious', thinking: 'Thinking', happy: 'Happy' };
 
 export function FieldnotesAvatar({ size = 58, accountType }: { size?: number; accountType: 'founder' | 'founder_plus_startups' | null }) {
   const [path] = useLocation();
@@ -23,46 +24,45 @@ export function FieldnotesAvatar({ size = 58, accountType }: { size?: number; ac
   const [query, setQuery] = useState('');
   const [expandedQuestion, setExpandedQuestion] = useState('');
   const [mood, setMood] = useState<Mood>('idle');
-  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
-  const gradientId = useId().replace(/:/g, '');
+  const [announcement, setAnnouncement] = useState('');
+  const [reducedMotion, setReducedMotion] = useState(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const mascotButton = useRef<HTMLButtonElement>(null);
-  const dock = () => ({ x: Math.max(10, window.innerWidth - size - 22), y: Math.max(10, window.innerHeight - size - (window.matchMedia('(max-width: 760px)').matches ? 92 : 22)) });
+  const announcementTimer = useRef<number | undefined>(undefined);
+  const { rive, RiveComponent } = useRive({ src: '/fieldnotes-mascot.riv', autoplay: false, artboard: 'Fieldnotes Mascot' }, { shouldResizeCanvasToContainer: true });
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || window.matchMedia('(pointer: coarse)').matches) return;
-    let settleTimer = 0;
-    let frame = 0;
-    const resetToDock = () => setPosition(dock());
-    const resetToDefaultDock = () => setPosition(null);
-    const onPointerMove = (event: PointerEvent) => {
-      if (event.pointerType === 'touch' || isOpen) return;
-      const target = event.target;
-      if (target instanceof Element) {
-        if (target.closest('.fieldnotes-mascot-wrap')) return;
-        if (target.closest(interactiveSelector)) { setPosition(dock()); return; }
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    if (!rive) return;
+    rive.stop();
+    if (!reducedMotion) rive.play(riveAnimation[mood]);
+  }, [rive, mood, reducedMotion]);
+
+  useEffect(() => {
+    const onMascotEvent = (event: Event) => {
+      const detail = (event as CustomEvent<{ mood?: Mood; message?: string }>).detail;
+      if (!detail?.mood) return;
+      setMood(detail.mood);
+      setAnnouncement(detail.message ?? '');
+      window.clearTimeout(announcementTimer.current);
+      if (detail.message) {
+        announcementTimer.current = window.setTimeout(() => {
+          setAnnouncement('');
+          setMood(isOpen ? 'curious' : 'idle');
+        }, 4200);
       }
-      window.clearTimeout(settleTimer);
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        const x = Math.max(10, Math.min(event.clientX + 24, window.innerWidth - size - 10));
-        const y = Math.max(10, Math.min(event.clientY + 24, window.innerHeight - size - 92));
-        setPosition({ x, y });
-      });
-      settleTimer = window.setTimeout(resetToDock, 1100);
     };
-    window.addEventListener('pointermove', onPointerMove, { passive: true });
-    window.addEventListener('scroll', resetToDock, { passive: true });
-    window.addEventListener('resize', resetToDefaultDock);
-    window.addEventListener('blur', resetToDock);
+    window.addEventListener('fieldnotes:mascot', onMascotEvent);
     return () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('scroll', resetToDock);
-      window.removeEventListener('blur', resetToDock);
-      window.removeEventListener('resize', resetToDefaultDock);
-      window.clearTimeout(settleTimer);
-      window.cancelAnimationFrame(frame);
+      window.removeEventListener('fieldnotes:mascot', onMascotEvent);
+      window.clearTimeout(announcementTimer.current);
     };
-  }, [isOpen, size]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -96,12 +96,13 @@ export function FieldnotesAvatar({ size = 58, accountType }: { size?: number; ac
   function toggleHelp() {
     const opening = !isOpen;
     setIsOpen(opening);
-    setPosition(opening ? dock() : null);
     setMood(opening ? 'curious' : 'idle');
+    setAnnouncement('');
     if (!opening) { setQuery(''); setExpandedQuestion(''); }
   }
 
-  return <div className={`fieldnotes-mascot-wrap${position ? ' is-following' : ''}`} style={{ width: size, height: size, left: position?.x ?? undefined, top: position?.y ?? undefined }}>
+  return <div className="fieldnotes-mascot-wrap" style={{ width: size, height: size }}>
+    {announcement && <div className="fieldnotes-mascot-announcement" role="status">{announcement}</div>}
     <button
       type="button"
       ref={mascotButton}
@@ -112,32 +113,10 @@ export function FieldnotesAvatar({ size = 58, accountType }: { size?: number; ac
       onClick={toggleHelp}
       onPointerEnter={() => { if (!isOpen) setMood('curious'); }}
       onPointerLeave={() => { if (!isOpen) setMood('idle'); }}
-      onFocus={() => { setPosition(dock()); if (!isOpen) setMood('curious'); }}
+      onFocus={() => { if (!isOpen) setMood('curious'); }}
       onBlur={() => { if (!isOpen) setMood('idle'); }}
     >
-      <svg viewBox="0 0 96 96" aria-hidden="true" fill="none">
-        <defs>
-          <linearGradient id={`${gradientId}-shell`} x1="20" y1="10" x2="77" y2="88" gradientUnits="userSpaceOnUse"><stop stopColor="#718B73" /><stop offset=".38" stopColor="#344B39" /><stop offset="1" stopColor="#1B2B21" /></linearGradient>
-          <linearGradient id={`${gradientId}-face`} x1="29" y1="25" x2="65" y2="69" gradientUnits="userSpaceOnUse"><stop stopColor="#FFFEF7" /><stop offset="1" stopColor="#E6E0D2" /></linearGradient>
-          <linearGradient id={`${gradientId}-gold`} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#F4D594" /><stop offset="1" stopColor="#B77A34" /></linearGradient>
-          <radialGradient id={`${gradientId}-shine`} cx="0" cy="0" r="1" gradientTransform="matrix(24 25 -29 28 29 21)" gradientUnits="userSpaceOnUse"><stop stopColor="white" stopOpacity=".42" /><stop offset="1" stopColor="white" stopOpacity="0" /></radialGradient>
-          <filter id={`${gradientId}-shadow`} x="9" y="10" width="82" height="84" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="3" /></filter>
-        </defs>
-        <ellipse cx="49" cy="86" rx="27" ry="5" fill="#17251B" fillOpacity=".17" filter={`url(#${gradientId}-shadow)`} />
-        <path className="fieldnotes-mascot-leaf" d="M47 18C40 10 42 4 52 5c5 1 7 5 7 10-5 1-9 2-12 3Z" fill={`url(#${gradientId}-gold)`} />
-        <path d="M48 15c2-3 5-5 8-7" stroke="#FFF5D9" strokeOpacity=".8" strokeWidth="1.5" strokeLinecap="round" />
-        <ellipse cx="18" cy="51" rx="6" ry="10" fill="#293B2E" /><ellipse cx="78" cy="51" rx="6" ry="10" fill="#293B2E" />
-        <path d="M48 15c-18 0-31 12-31 31v19c0 15 12 25 31 25s31-10 31-25V46c0-19-13-31-31-31Z" fill={`url(#${gradientId}-shell)`} stroke="#1B2A20" strokeWidth="2" />
-        <path d="M22 47c0-16 10-27 25-27 9 0 17 4 22 12-6-4-14-6-23-4-12 2-19 12-20 25v18c-3-4-4-9-4-15V47Z" fill={`url(#${gradientId}-shine)`} />
-        <path d="M29 37c0-8 7-14 16-14h7c9 0 16 6 16 14v24c0 10-7 17-17 17h-5c-10 0-17-7-17-17V37Z" fill={`url(#${gradientId}-face)`} stroke="#DCD6C8" strokeWidth="1.5" />
-        <path d="M32 31c3-3 7-5 13-5h7c5 0 9 2 12 5" stroke="white" strokeOpacity=".9" strokeWidth="2" strokeLinecap="round" />
-        <g className="fieldnotes-mascot-eyes" fill="#293A2D"><ellipse cx="41" cy="47" rx="3.1" ry="4.2" /><ellipse cx="56" cy="47" rx="3.1" ry="4.2" /><circle cx="42" cy="45.5" r="1" fill="white" /><circle cx="57" cy="45.5" r="1" fill="white" /></g>
-        {mood === 'curious' && <path d="m37 39 5-1m9 1 5 1" stroke="#526B55" strokeWidth="1.5" strokeLinecap="round" />}
-        {mood === 'thinking' ? <path d="M43 59c3-3 8-3 11 0" stroke="#526B55" strokeWidth="2" strokeLinecap="round" /> : mood === 'happy' ? <path d="M42 55c3 7 9 7 12 0" stroke="#526B55" strokeWidth="2.2" strokeLinecap="round" /> : <path d="M43 57c3 4 8 4 11 0" stroke="#526B55" strokeWidth="2" strokeLinecap="round" />}
-        <ellipse cx="34" cy="55" rx="3.4" ry="2" fill="#D99076" fillOpacity={mood === 'happy' ? '.62' : '.35'} /><ellipse cx="63" cy="55" rx="3.4" ry="2" fill="#D99076" fillOpacity={mood === 'happy' ? '.62' : '.35'} />
-        <circle cx="48" cy="73" r="5.5" fill={`url(#${gradientId}-gold)`} /><rect x="46.5" y="70.5" width="3" height="5" rx=".5" fill="#FFF8E8" /><path d="M47.2 72h1.6m-1.6 1.2h1.6" stroke="#A8773E" strokeWidth=".6" strokeLinecap="round" />
-        <path d="M22 64c0 12 10 20 26 20" stroke="white" strokeOpacity=".14" strokeWidth="2" strokeLinecap="round" />
-      </svg>
+      <span className="fieldnotes-mascot-art" aria-hidden="true"><RiveComponent /></span>
       <span className="fieldnotes-mascot-hover" aria-hidden="true">Find a feature · ask me</span>
     </button>
     {isOpen && <section className="fieldnotes-help-panel" id="fieldnotes-help-panel" aria-label="Fieldnotes help">

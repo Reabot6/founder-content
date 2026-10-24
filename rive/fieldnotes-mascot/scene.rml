@@ -1,0 +1,94 @@
+<Rive version="1" kind="fragment">
+    <Artboard styleId="0:5" width="120" height="120" name="Fieldnotes Mascot" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5"/>
+
+        <!-- A small, warm forest creature with layered highlights for a soft 3D read. -->
+        
+        
+        
+        
+        
+        
+
+        
+        
+        
+        
+        
+
+        
+        
+        
+
+        <Shape x="59" y="18" name="Leaf" id="0:25">
+            <Ellipse originX="0.5" originY="0.5" width="13" height="22" name="Path"/>
+            <Fill name="Gold"><LinearGradient startX="-7" startY="-11" endX="7" endY="11" name="Gradient"><GradientStop colorValue="FFF4D594" position="0"/><GradientStop colorValue="FFB77A34" position="1"/></LinearGradient></Fill>
+        </Shape>
+        <Shape x="42" y="55" name="Left eye light"><Ellipse originX="0.5" originY="0.5" width="2" height="2" name="Path"/><Fill name="Eye light"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill></Shape>
+        <Shape x="80" y="55" name="Right eye light"><Ellipse originX="0.5" originY="0.5" width="2" height="2" name="Path"/><Fill name="Eye light"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill></Shape>
+        <Shape x="41" y="57" name="Left eye" id="0:16"><Ellipse originX="0.5" originY="0.5" width="6" height="9" name="Path"/><Fill name="Eye"><SolidColor colorValue="FF293A2D" name="Color"/></Fill></Shape>
+        <Shape x="79" y="57" name="Right eye" id="0:17"><Ellipse originX="0.5" originY="0.5" width="6" height="9" name="Path"/><Fill name="Eye"><SolidColor colorValue="FF293A2D" name="Color"/></Fill></Shape>
+        <Shape x="60" y="72" name="Neutral mouth" id="0:20"><Ellipse originX="0.5" originY="0.5" width="9" height="2.5" name="Path"/><Fill name="Mouth"><SolidColor colorValue="FF526B55" name="Color"/></Fill></Shape>
+        <Shape x="60" y="70" opacity="0" name="Happy mouth" id="0:21"><PointsPath name="Path"><StraightVertex x="-8" y="-1"/><CubicMirroredVertex x="0" y="4" rotation="0" distance="5"/><StraightVertex x="8" y="-1"/></PointsPath><Stroke thickness="2.2" cap="round" join="round" name="Smile"><SolidColor colorValue="FF526B55" name="Color"/></Stroke></Shape>
+        <Shape x="60" y="70" opacity="0" name="Thinking mouth" id="0:22"><Ellipse originX="0.5" originY="0.5" width="6" height="6" name="Path"/><Fill name="Mouth"><SolidColor colorValue="FF526B55" name="Color"/></Fill></Shape>
+        <Shape x="33" y="65" opacity="0.35" name="Left blush"><Ellipse originX="0.5" originY="0.5" width="7" height="4" name="Path"/><Fill name="Blush"><SolidColor colorValue="FFD99076" name="Color"/></Fill></Shape>
+        <Shape x="87" y="65" opacity="0.35" name="Right blush"><Ellipse originX="0.5" originY="0.5" width="7" height="4" name="Path"/><Fill name="Blush"><SolidColor colorValue="FFD99076" name="Color"/></Fill></Shape>
+        <Shape x="41" y="49" opacity="0" name="Curious brow left" id="0:28"><Rectangle originX="0.5" originY="0.5" width="8" height="1.8" cornerRadiusTL="1" name="Path"/><Fill name="Brow"><SolidColor colorValue="FF526B55" name="Color"/></Fill></Shape>
+        <Shape x="79" y="49" opacity="0" name="Curious brow right" id="0:29"><Rectangle originX="0.5" originY="0.5" width="8" height="1.8" cornerRadiusTL="1" name="Path"/><Fill name="Brow"><SolidColor colorValue="FF526B55" name="Color"/></Fill></Shape>
+        <Shape x="60" y="63" name="Face">
+            <Ellipse originX="0.5" originY="0.5" width="54" height="62" name="Path"/>
+            <Fill name="Face color"><LinearGradient startX="-20" startY="-28" endX="26" endY="34" name="Gradient"><GradientStop colorValue="FFFFFEF7" position="0"/><GradientStop colorValue="FFE2DDCF" position="1"/></LinearGradient></Fill>
+        </Shape>
+        <Shape x="60" y="68" name="Shell" id="0:14">
+            <Ellipse originX="0.5" originY="0.5" width="78" height="86" name="Path"/>
+            <Fill name="Shell color"><LinearGradient startX="-38" startY="-42" endX="36" endY="44" name="Gradient"><GradientStop colorValue="FF829681" position="0"/><GradientStop colorValue="FF405A45" position="0.42"/><GradientStop colorValue="FF1B2B21" position="1"/></LinearGradient></Fill>
+        </Shape>
+<LinearAnimation loopValue="loop" duration="120" name="Idle" id="0:6">
+            <KeyedObject objectId="0:25"><KeyedProperty propertyKey="15"><KeyFrameDouble value="-0.05" interpolationType="cubic"/><KeyFrameDouble value="0.05" interpolationType="cubic" frame="60"/><KeyFrameDouble value="-0.05" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:16"><KeyedProperty propertyKey="17"><KeyFrameDouble value="1"/><KeyFrameDouble value="0.14" frame="3"/><KeyFrameDouble value="1" frame="7"/><KeyFrameDouble value="1" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:17"><KeyedProperty propertyKey="17"><KeyFrameDouble value="1"/><KeyFrameDouble value="0.14" frame="3"/><KeyFrameDouble value="1" frame="7"/><KeyFrameDouble value="1" frame="120"/></KeyedProperty></KeyedObject>
+        
+            <KeyedObject objectId="0:20"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" interpolationType="cubic"/><KeyFrameDouble value="1" interpolationType="cubic" frame="12"/><KeyFrameDouble value="1" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:21"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:22"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:28"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:29"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation loopValue="loop" duration="120" name="Curious" id="0:7">
+            <KeyedObject objectId="0:25"><KeyedProperty propertyKey="15"><KeyFrameDouble value="-0.12"/><KeyFrameDouble value="0.12" frame="60"/><KeyFrameDouble value="-0.12" frame="120"/></KeyedProperty></KeyedObject>
+            
+            
+            
+        
+            <KeyedObject objectId="0:20"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:21"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:22"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:28"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="1" interpolationType="cubic" frame="12"/><KeyFrameDouble value="1" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:29"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="1" interpolationType="cubic" frame="12"/><KeyFrameDouble value="1" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation loopValue="loop" duration="120" name="Thinking" id="0:8">
+            <KeyedObject objectId="0:25"><KeyedProperty propertyKey="15"><KeyFrameDouble value="0.08"/><KeyFrameDouble value="-0.08" frame="60"/><KeyFrameDouble value="0.08" frame="120"/></KeyedProperty></KeyedObject>
+            
+            
+        
+            <KeyedObject objectId="0:20"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:21"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:22"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="1" interpolationType="cubic" frame="12"/><KeyFrameDouble value="1" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:28"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:29"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation loopValue="loop" duration="120" name="Happy" id="0:9">
+            <KeyedObject objectId="0:25"><KeyedProperty propertyKey="15"><KeyFrameDouble value="-0.12"/><KeyFrameDouble value="0.12" frame="60"/><KeyFrameDouble value="-0.12" frame="120"/></KeyedProperty></KeyedObject>
+            
+            
+            <KeyedObject objectId="0:16"><KeyedProperty propertyKey="17"><KeyFrameDouble value="0.6"/><KeyFrameDouble value="0.6" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:17"><KeyedProperty propertyKey="17"><KeyFrameDouble value="0.6"/><KeyFrameDouble value="0.6" frame="120"/></KeyedProperty></KeyedObject>
+        
+            <KeyedObject objectId="0:20"><KeyedProperty propertyKey="18"><KeyFrameDouble value="1" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:21"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="1" interpolationType="cubic" frame="12"/><KeyFrameDouble value="1" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:22"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:28"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:29"><KeyedProperty propertyKey="18"><KeyFrameDouble value="0" interpolationType="cubic"/><KeyFrameDouble value="0" interpolationType="cubic" frame="12"/><KeyFrameDouble value="0" interpolationType="cubic" frame="120"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

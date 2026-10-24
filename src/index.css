@@ -5,21 +5,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@keyframes fieldnotes-float {
-  0%, 100% { transform: translateY(0) rotate(-2deg); }
-  50% { transform: translateY(-5px) rotate(2deg); }
-}
-.fieldnotes-mascot-wrap { position: fixed; top: auto; right: 24px; bottom: 24px; left: auto; z-index: 60; pointer-events: none; transition: left .48s cubic-bezier(.2,.8,.2,1), top .48s cubic-bezier(.2,.8,.2,1); }
-.fieldnotes-mascot-wrap.is-following { right: auto; bottom: auto; }
+@keyframes fieldnotes-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
+.fieldnotes-mascot-wrap { position: fixed; top: auto; right: 24px; bottom: 24px; left: auto; z-index: 60; pointer-events: none; }
 .fieldnotes-mascot { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto; filter: drop-shadow(0 4px 3px rgb(33 45 35 / .16)); transition: filter .2s ease, transform .2s ease; }
-.fieldnotes-mascot svg { display: block; width: 100%; height: 100%; overflow: visible; animation: fieldnotes-float 4s ease-in-out infinite; }
-.fieldnotes-mascot:hover, .fieldnotes-mascot:focus-visible { filter: drop-shadow(0 8px 6px rgb(33 45 35 / .24)); transform: scale(1.08) rotate(3deg); outline: none; }
+.fieldnotes-mascot-art { display: block; width: 100%; height: 100%; overflow: visible; animation: fieldnotes-float 5s ease-in-out infinite; }
+.fieldnotes-mascot-art canvas { display: block; width: 100% !important; height: 100% !important; overflow: visible; }
+.fieldnotes-mascot:hover, .fieldnotes-mascot:focus-visible { filter: drop-shadow(0 8px 6px rgb(33 45 35 / .24)); transform: scale(1.05); outline: none; }
 .fieldnotes-mascot:active { transform: scale(.96); }
 .fieldnotes-mascot:focus-visible::after { content: ''; position: absolute; inset: 3px; border: 2px solid hsl(var(--ring)); border-radius: 45%; }
-.fieldnotes-mascot-eyes { transform-box: fill-box; transform-origin: center; animation: fieldnotes-blink 5.4s infinite; }
-@keyframes fieldnotes-blink { 0%, 45%, 48%, 100% { transform: scaleY(1); } 46.5% { transform: scaleY(.08); } }
 .fieldnotes-mascot-hover { position: absolute; top: -8px; left: 50%; width: max-content; transform: translate(-50%, -100%); padding: 5px 8px; background: hsl(var(--foreground)); color: hsl(var(--background)); font-size: 10px; opacity: 0; pointer-events: none; transition: opacity .16s ease; }
 .fieldnotes-mascot:hover .fieldnotes-mascot-hover, .fieldnotes-mascot:focus-visible .fieldnotes-mascot-hover { opacity: 1; }
+.fieldnotes-mascot-announcement { position: absolute; right: 2px; bottom: calc(100% + 12px); width: max-content; max-width: min(260px, calc(100vw - 36px)); border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: hsl(var(--card-foreground)); padding: 9px 12px; font-size: 11px; line-height: 1.45; box-shadow: 0 8px 24px rgb(29 38 30 / .14); animation: fieldnotes-tip-in .18s ease-out both; pointer-events: none; }
 .fieldnotes-help-panel { position: absolute; right: 0; bottom: calc(100% + 14px); display: flex; width: min(340px, calc(100vw - 28px)); max-height: min(68dvh, 540px); flex-direction: column; overflow: hidden; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: hsl(var(--card-foreground)); box-shadow: 0 18px 48px rgb(29 38 30 / .2); animation: fieldnotes-tip-in .18s ease-out both; pointer-events: auto; }
 .fieldnotes-help-heading { position: relative; flex: none; border-bottom: 1px solid hsl(var(--border)); padding: 16px 42px 13px 16px; }
 .fieldnotes-help-search { display: flex; flex: none; align-items: center; gap: 8px; margin: 12px 12px 4px; border: 1px solid hsl(var(--border)); padding: 0 10px; color: hsl(var(--muted-foreground)); }
@@ -36,8 +32,8 @@
 .fieldnotes-mascot-tip-label { color: hsl(var(--muted-foreground)); font-size: 9px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
 .fieldnotes-mascot-dismiss { position: absolute; top: 6px; right: 7px; display: grid; width: 20px; height: 20px; place-items: center; color: hsl(var(--muted-foreground)); font-size: 18px; line-height: 1; }
 @keyframes fieldnotes-tip-in { from { opacity: 0; translate: -4px 0; } to { opacity: 1; translate: 0 0; } }
-@media (max-width: 760px) { .fieldnotes-mascot-wrap:not(.is-following) { right: 16px; bottom: calc(82px + env(safe-area-inset-bottom)); } .fieldnotes-help-panel { right: -4px; width: min(340px, calc(100vw - 28px)); } }
-@media (prefers-reduced-motion: reduce) { .fieldnotes-mascot svg, .fieldnotes-mascot-eyes { animation: none; } .fieldnotes-mascot, .fieldnotes-mascot-hover, .fieldnotes-mascot-wrap { transition: none; } }
+@media (max-width: 760px) { .fieldnotes-mascot-wrap { right: 16px; bottom: calc(82px + env(safe-area-inset-bottom)); } .fieldnotes-help-panel { right: -4px; width: min(340px, calc(100vw - 28px)); } }
+@media (prefers-reduced-motion: reduce) { .fieldnotes-mascot-art { animation: none; } .fieldnotes-mascot, .fieldnotes-mascot-hover, .fieldnotes-mascot-announcement { transition: none; animation: none; } }
 
 @theme inline {
   --color-background: hsl(var(--background));

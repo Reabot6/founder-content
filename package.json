@@ -73,6 +73,7 @@
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
+    "@rive-app/react-webgl2": "^4.37.1",
     "@supabase/supabase-js": "^2.118.0"
   }
 }
