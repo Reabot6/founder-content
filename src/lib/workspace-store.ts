@@ -26,6 +26,7 @@ export type WorkspaceData = {
   projects: WorkspaceProject[];
   skills: WorkspaceSkill[];
   onboardingComplete: boolean;
+  accountType: 'founder' | 'founder_plus_startups' | null;
 };
 
 export const emptyProfile: FounderProfile = {
@@ -34,7 +35,7 @@ export const emptyProfile: FounderProfile = {
 };
 
 export const emptyWorkspace: WorkspaceData = {
-  drafts: [], profile: emptyProfile, projects: [], skills: [], onboardingComplete: false,
+  drafts: [], profile: emptyProfile, projects: [], skills: [], onboardingComplete: false, accountType: null,
 };
 
 const storagePrefix = 'fieldnotes-workspace-v2:';
@@ -56,6 +57,7 @@ export function readWorkspace(ownerId: string): WorkspaceData {
       drafts: Array.isArray(parsed.drafts) ? parsed.drafts : [],
       skills: Array.isArray(parsed.skills) ? parsed.skills : [],
       projects: Array.isArray(parsed.projects) ? parsed.projects.map((project) => ({ ...project, website: project.website ?? '', voice: project.voice ?? '', documents: Array.isArray(project.documents) ? project.documents : [] })) : [],
+      accountType: parsed.accountType === 'founder' || parsed.accountType === 'founder_plus_startups' ? parsed.accountType : null,
     };
   } catch {
     return emptyWorkspace;

@@ -135,11 +135,13 @@ export async function getJob(jobId: string): Promise<JobResponse> {
   return parsed.data;
 }
 
-export async function startBillingCheckout(planId: string): Promise<{ checkout_url: string }> {
+export async function startBillingCheckout(planId: string, accountType: 'founder' | 'founder_plus_startups' = 'founder'): Promise<{ checkout_url: string }> {
   const body = await requestJson('/api/billing/checkout', {
     method: 'POST',
     body: JSON.stringify({
       plan_id: planId,
+      account_type: accountType,
+      bundle_discount_percent: accountType === 'founder_plus_startups' ? 5 : 0,
       success_url: `${window.location.origin}/billing?checkout=success`,
       cancel_url: `${window.location.origin}/billing?checkout=cancelled`,
     }),

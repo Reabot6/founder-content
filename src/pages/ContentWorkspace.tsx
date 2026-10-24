@@ -16,12 +16,11 @@ const formatOptions: { value: ContentFormat; label: string; hint: string }[] = [
   { value: 'talking_points', label: 'Talking points', hint: 'A flexible outline to speak from' },
 ];
 
-export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, skills: availableSkills, workspaceProject }: { mode: 'create' | 'repurpose'; drafts: DraftRecord[]; onDraft: (draft: DraftRecord) => void; profile: FounderProfile; projects: WorkspaceProject[]; skills: WorkspaceSkill[]; workspaceProject?: WorkspaceProject }) {
+export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, skills: availableSkills, workspaceProject, founderWorkspace = false }: { mode: 'create' | 'repurpose'; drafts: DraftRecord[]; onDraft: (draft: DraftRecord) => void; profile: FounderProfile; projects: WorkspaceProject[]; skills: WorkspaceSkill[]; workspaceProject?: WorkspaceProject; founderWorkspace?: boolean }) {
   const [topic, setTopic] = useState('');
   const [objective, setObjective] = useState('');
   const [format, setFormat] = useState<ContentFormat>('written_post');
   const [platform, setPlatform] = useState<Platform>('LinkedIn');
-  const [project, setProject] = useState(workspaceProject?.id ?? '');
   const [importedProjectIds, setImportedProjectIds] = useState<string[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [sourceId, setSourceId] = useState(() => new URLSearchParams(window.location.search).get('source') ?? '');
@@ -31,9 +30,9 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
   const [localError, setLocalError] = useState('');
   const [completed, setCompleted] = useState<Extract<JobResponse, { status: 'completed' }>['data'] | null>(null);
 
-  const sourceDrafts = isDemo ? [...demoDrafts, ...drafts] : drafts;
+  const sourceDrafts = isDemo && !workspaceProject ? [...demoDrafts, ...drafts] : drafts;
   const selectedSource = sourceDrafts.find((draft) => draft.id === sourceId);
-  const selectedProject = workspaceProject ?? projects.find((item) => item.id === project);
+  const selectedProject = workspaceProject;
   const importedProjects = projects.filter((item) => importedProjectIds.includes(item.id) && item.id !== selectedProject?.id);
   const contextFor = (item: WorkspaceProject) => [item.name, item.website && `Website: ${item.website}`, item.description, item.voice && `Startup-specific voice: ${item.voice}`, ...(item.documents ?? []).map((doc) => `Source: ${doc.name}\n${doc.text}`)].filter(Boolean).join('\n\n');
   const combinedProjectContext = [selectedProject, ...importedProjects].filter((item): item is WorkspaceProject => Boolean(item)).map(contextFor).join('\n\n--- Imported startup context ---\n\n').slice(0, 60_000);
@@ -104,8 +103,7 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
       text: value.data.draft_content,
       demo: isDemo,
       updatedAt: new Date().toISOString(),
-      ...(workspaceProject ? { workspaceId: workspaceProject.id } : {}),
-      ...(!workspaceProject && selectedProject ? { workspaceId: selectedProject.id } : {}),
+      ...(workspaceProject ? { workspaceId: workspaceProject.id } : founderWorkspace ? { workspaceId: 'founder' } : {}),
     };
     onDraft(record);
     setActiveDraftId(record.id);
@@ -159,13 +157,7 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
             {selectedProject && (selectedProject.documents?.length ?? 0) > 0 && <button type="button" className="mt-3 inline-flex min-h-9 items-center gap-2 border px-3 text-xs hover:bg-muted" onClick={() => { setTopic(`Find a useful, specific post idea in ${selectedProject.name}'s source library. Choose one concrete insight and write an original post grounded in the uploaded material.`); setObjective(`Turn a useful insight from ${selectedProject.name}'s source documents into a clear, founder-led social post.`); }}><Sparkle size={15} />Use my sources as the starting point</button>}
           </div>
           <div className="mb-6 grid gap-5 sm:grid-cols-2 form-columns">
-            {!workspaceProject && <div><label htmlFor="project" className="label">Write about <span className="font-normal text-muted-foreground">(optional)</span></label>
-              <select className="field" id="project" value={project} onChange={(e) => setProject(e.target.value)} data-testid="select-project">
-                <option value="">Me as a founder</option>
-                {projects.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
-              </select>
-              {!projects.length && <p className="mt-1.5 text-xs text-muted-foreground">You can add startups later from <Link href="/projects" className="underline">Startups</Link>.</p>}
-            </div>}
+            {!workspaceProject && <div className="flex items-end"><div className="w-full border-l-2 py-1 pl-3" style={{ borderColor: 'hsl(var(--ring))' }}><span className="eyebrow">Writing about</span><div className="mt-1 text-sm font-medium">{founderWorkspace ? (profile.name || 'You as a founder') : 'You as a founder'}</div></div></div>}
             {workspaceProject && <div className="flex items-end"><div className="w-full border-l-2 py-1 pl-3" style={{ borderColor: 'hsl(var(--ring))' }}><span className="eyebrow">Writing about</span><div className="mt-1 text-sm font-medium">{workspaceProject.name}</div></div></div>}
             <div><label htmlFor="platform" className="label">Platform</label><select className="field" id="platform" value={platform} onChange={(e) => setPlatform(e.target.value as Platform)} data-testid="select-platform">
               {platforms.map((item) => <option value={item} key={item}>{item}</option>)}

@@ -6,14 +6,12 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { isDemo, authConfigured } from '@/lib/content-api';
 import { supabase } from '@/lib/supabase';
 
-const links = [
-  { href: '/', label: 'Home', icon: House },
-  { href: '/create', label: 'Create', icon: NotePencil },
-  { href: '/repurpose', label: 'Repurpose', icon: ArrowsLeftRight },
-  { href: '/library', label: 'Content library', icon: Books },
+const links = [{ href: '/', label: 'Home', icon: House }];
+const spaceLinks = [
+  { href: '/founder', label: 'Founder workspace', icon: UserCircle },
+  { href: '/projects', label: 'Startups', icon: FolderSimple },
 ];
 const workspaceLinks = [
-  { href: '/projects', label: 'Startups', icon: FolderSimple },
   { href: '/skills', label: 'Shared skills', icon: Shapes },
   { href: '/settings', label: 'Founder profile', icon: UserCircle },
 ];
@@ -30,7 +28,7 @@ function NavLinks({ close }: { close?: () => void }) {
 export function AppShell({ children, theme, onToggleTheme }: { children: ReactNode; theme: 'light' | 'dark'; onToggleTheme: () => void }) {
   const [location] = useLocation();
   const reducedMotion = useReducedMotion();
-  const title = [...links, ...workspaceLinks].find((item) => item.href === location || (location === '/profile' && item.href === '/settings'))?.label ?? 'Workspace';
+  const title = [...links, ...spaceLinks, ...workspaceLinks].find((item) => item.href === location || (location === '/profile' && item.href === '/settings'))?.label ?? (location.startsWith('/startups/') ? 'Startup workspace' : location === '/create' ? 'Create' : location === '/repurpose' ? 'Repurpose' : location === '/library' ? 'Content library' : 'Workspace');
   async function signOut() {
     if (supabase) await supabase.auth.signOut();
   }
@@ -40,8 +38,10 @@ export function AppShell({ children, theme, onToggleTheme }: { children: ReactNo
         <img src="/logo.svg" alt="" className="h-9 w-9" />
         <span><span className="block text-sm font-semibold tracking-tight">Fieldnotes</span><span className="eyebrow" style={{ fontSize: 9 }}>FOUNDER STUDIO</span></span>
       </Link>
-      <div className="eyebrow px-3 mb-2">Workspace</div>
+      <div className="eyebrow px-3 mb-2">Home</div>
       <nav className="grid gap-1"><NavLinks /></nav>
+      <div className="eyebrow px-3 mb-2 mt-8">Your spaces</div>
+      <div className="grid gap-1">{spaceLinks.map(({ href, label, icon: Icon }) => <NavItem key={href} href={href} label={label} icon={<Icon size={18} weight="regular" />} active={location === href || location.startsWith('/startups/') && href === '/projects'} />)}</div>
       <div className="eyebrow px-3 mb-2 mt-8">Build context</div>
       <div className="grid gap-1">
         {workspaceLinks.map(({ href, label, icon: Icon }) => <NavItem key={href} href={href} label={label} icon={<Icon size={18} weight="regular" />} active={location === href || (location === '/profile' && href === '/settings')} />)}
@@ -72,7 +72,7 @@ export function AppShell({ children, theme, onToggleTheme }: { children: ReactNo
       </AnimatePresence>
     </main>
     <nav className="mobile-nav" aria-label="Primary navigation">
-      {[links[0], workspaceLinks[0], links[1], workspaceLinks[1], links[3], workspaceLinks[2], { href: '/billing', label: 'Plans', icon: CreditCard }].map(({ href, label, icon: Icon }) => <MobileItem key={href} href={href} label={label} icon={<Icon size={19} weight="regular" />} active={location === href || (location === '/profile' && href === '/settings')} />)}
+      {[links[0], spaceLinks[0], spaceLinks[1], workspaceLinks[0], workspaceLinks[1], { href: '/billing', label: 'Plans', icon: CreditCard }].map(({ href, label, icon: Icon }) => <MobileItem key={href} href={href} label={label} icon={<Icon size={19} weight="regular" />} active={location === href || (location === '/profile' && href === '/settings') || location.startsWith('/startups/') && href === '/projects'} />)}
     </nav>
   </div>;
 }
@@ -81,7 +81,7 @@ function NavItem({ href, label, icon, active }: { href: string; label: string; i
   return <Link href={href} className="sidebar-link" aria-current={active ? 'page' : undefined} data-testid={`link-${href.slice(1)}`}>{icon}<span>{label}</span></Link>;
 }
 function MobileItem({ href, label, icon, active }: { href: string; label: string; icon: ReactNode; active: boolean }) {
-  const mobileLabel = label === 'Content library' ? 'Library' : label === 'Founder profile' ? 'Profile' : label === 'Shared skills' ? 'Skills' : label;
+  const mobileLabel = label === 'Founder workspace' ? 'Founder' : label === 'Founder profile' ? 'Profile' : label === 'Shared skills' ? 'Skills' : label;
   return <Link href={href} aria-current={active ? 'page' : undefined} data-testid={`mobile-link-${href.slice(1)}`}>{icon}<span>{mobileLabel}</span></Link>;
 }
 

@@ -15,6 +15,7 @@ const NotFound = lazy(() => import('@/pages/not-found'));
 const AuthPage = lazy(() => import('@/pages/AuthPage').then((module) => ({ default: module.AuthPage })));
 const ContentWorkspace = lazy(() => import('@/pages/ContentWorkspace').then((module) => ({ default: module.ContentWorkspace })));
 const HomePage = lazy(() => import('@/pages/WorkspacePages').then((module) => ({ default: module.HomePage })));
+const FounderWorkspacePage = lazy(() => import('@/pages/WorkspacePages').then((module) => ({ default: module.FounderWorkspacePage })));
 const LibraryPage = lazy(() => import('@/pages/WorkspacePages').then((module) => ({ default: module.LibraryPage })));
 const DraftDetailPage = lazy(() => import('@/pages/WorkspacePages').then((module) => ({ default: module.DraftDetailPage })));
 const FoundationPage = lazy(() => import('@/pages/WorkspacePages').then((module) => ({ default: module.FoundationPage })));
@@ -33,39 +34,41 @@ function Router({ workspace, updateWorkspace, sessionReady, signedIn, theme, onT
 }) {
   const addDraft = useCallback((draft: DraftRecord) => updateWorkspace((current) => ({ ...current, drafts: [draft, ...current.drafts.filter((item) => item.id !== draft.id)] })), [updateWorkspace]);
   const saveDraft = useCallback((draft: DraftRecord) => updateWorkspace((current) => ({ ...current, drafts: [{ ...draft, updatedAt: new Date().toISOString() }, ...current.drafts.filter((item) => item.id !== draft.id)] })), [updateWorkspace]);
-  const privateProps = { sessionReady, signedIn, onboardingComplete: workspace.onboardingComplete, theme, onToggleTheme };
+  const privateProps = { sessionReady, signedIn, onboardingComplete: workspace.onboardingComplete, accountType: workspace.accountType, theme, onToggleTheme };
   return <RoutedErrorBoundary>
     <Suspense fallback={<div className="grid min-h-[70dvh] place-items-center p-6"><div className="w-full max-w-xl space-y-4" role="status" aria-label="Loading workspace"><div className="h-3 w-1/3 animate-pulse bg-muted" /><div className="h-10 w-3/4 animate-pulse bg-muted" /><div className="h-32 animate-pulse bg-muted" /></div></div>}>
     <Switch>
       <Route path="/sign-in" component={() => <AuthPage mode="sign-in" />} />
       <Route path="/sign-up" component={() => <AuthPage mode="sign-up" />} />
-      <Route path="/onboarding" component={() => <PrivatePage {...privateProps}><OnboardingPage profile={workspace.profile} onProfile={(profile) => updateWorkspace((current) => ({ ...current, profile }))} projects={workspace.projects} onProjects={(projects) => updateWorkspace((current) => ({ ...current, projects }))} onComplete={() => updateWorkspace((current) => ({ ...current, onboardingComplete: true }))} /></PrivatePage>} />
-      <Route path="/" component={() => <PrivatePage {...privateProps}><HomePage drafts={workspace.drafts} profile={workspace.profile} projects={workspace.projects} skills={workspace.skills} /></PrivatePage>} />
-      <Route path="/create" component={() => { const project = workspace.projects.find((item) => item.id === new URLSearchParams(window.location.search).get('startup')); return <PrivatePage {...privateProps}><ContentWorkspace mode="create" drafts={workspace.drafts} onDraft={addDraft} profile={workspace.profile} projects={workspace.projects} skills={workspace.skills} workspaceProject={project} /></PrivatePage>; }} />
-      <Route path="/repurpose" component={() => { const project = workspace.projects.find((item) => item.id === new URLSearchParams(window.location.search).get('startup')); const drafts = project ? workspace.drafts.filter((draft) => draft.workspaceId === project.id) : workspace.drafts; return <PrivatePage {...privateProps}><ContentWorkspace mode="repurpose" drafts={drafts} onDraft={addDraft} profile={workspace.profile} projects={workspace.projects} skills={workspace.skills} workspaceProject={project} /></PrivatePage>; }} />
-      <Route path="/library" component={() => <PrivatePage {...privateProps}><LibraryPage drafts={workspace.drafts} /></PrivatePage>} />
+      <Route path="/onboarding" component={() => <PrivatePage {...privateProps}><OnboardingPage profile={workspace.profile} onProfile={(profile) => updateWorkspace((current) => ({ ...current, profile }))} projects={workspace.projects} onProjects={(projects) => updateWorkspace((current) => ({ ...current, projects }))} onComplete={(accountType) => updateWorkspace((current) => ({ ...current, accountType, onboardingComplete: true }))} /></PrivatePage>} />
+      <Route path="/" component={() => <PrivatePage {...privateProps}><HomePage accountType={workspace.accountType} profile={workspace.profile} projects={workspace.projects} skills={workspace.skills} /></PrivatePage>} />
+      <Route path="/founder" component={() => <PrivatePage {...privateProps}><FounderWorkspacePage drafts={workspace.drafts.filter((draft) => !draft.workspaceId || draft.workspaceId === 'founder')} profile={workspace.profile} /></PrivatePage>} />
+      <Route path="/create" component={() => { const project = workspace.projects.find((item) => item.id === new URLSearchParams(window.location.search).get('startup')); const drafts = project ? workspace.drafts.filter((draft) => draft.workspaceId === project.id) : workspace.drafts.filter((draft) => !draft.workspaceId || draft.workspaceId === 'founder'); return <PrivatePage {...privateProps}><ContentWorkspace mode="create" drafts={drafts} onDraft={addDraft} profile={workspace.profile} projects={workspace.projects} skills={workspace.skills} workspaceProject={project} founderWorkspace={!project} /></PrivatePage>; }} />
+      <Route path="/repurpose" component={() => { const project = workspace.projects.find((item) => item.id === new URLSearchParams(window.location.search).get('startup')); const drafts = project ? workspace.drafts.filter((draft) => draft.workspaceId === project.id) : workspace.drafts.filter((draft) => !draft.workspaceId || draft.workspaceId === 'founder'); return <PrivatePage {...privateProps}><ContentWorkspace mode="repurpose" drafts={drafts} onDraft={addDraft} profile={workspace.profile} projects={workspace.projects} skills={workspace.skills} workspaceProject={project} founderWorkspace={!project} /></PrivatePage>; }} />
+      <Route path="/library" component={() => { const params = new URLSearchParams(window.location.search); const startupId = params.get('startup'); const workspaceId = startupId ?? (params.get('workspace') === 'founder' ? 'founder' : undefined); const drafts = workspace.drafts.filter((draft) => workspaceId === 'founder' ? !draft.workspaceId || draft.workspaceId === 'founder' : workspaceId ? draft.workspaceId === workspaceId : true); return <PrivatePage {...privateProps}><LibraryPage drafts={drafts} workspaceId={workspaceId} /></PrivatePage>; }} />
       <Route path="/draft/:draftId" component={({ params }) => <PrivatePage {...privateProps}><DraftDetailPage draft={[...workspace.drafts, ...(isDemo ? demoDrafts : [])].find((item) => item.id === decodeURIComponent(params.draftId))} onSave={saveDraft} /></PrivatePage>} />
       <Route path="/projects" component={() => <PrivatePage {...privateProps}><FoundationPage page="projects" projects={workspace.projects} skills={workspace.skills} onProjects={(projects) => updateWorkspace((current) => ({ ...current, projects }))} onSkills={(skills) => updateWorkspace((current) => ({ ...current, skills }))} /></PrivatePage>} />
       <Route path="/startups/:startupId" component={({ params }) => { const project = workspace.projects.find((item) => item.id === decodeURIComponent(params.startupId)); return <PrivatePage {...privateProps}>{project ? <StartupWorkspacePage project={project} projects={workspace.projects} drafts={workspace.drafts.filter((draft) => draft.workspaceId === project.id)} profile={workspace.profile} skills={workspace.skills} onProject={(next) => updateWorkspace((current) => ({ ...current, projects: current.projects.map((item) => item.id === next.id ? next : item) }))} onProjects={(projects) => updateWorkspace((current) => ({ ...current, projects }))} onDraft={addDraft} /> : <div className="page-wrap"><h1 className="serif text-4xl">Startup not found</h1><Link href="/projects" className="mt-4 inline-flex underline">Back to startups</Link></div>}</PrivatePage>; }} />
       <Route path="/skills" component={() => <PrivatePage {...privateProps}><FoundationPage page="skills" projects={workspace.projects} skills={workspace.skills} onProjects={(projects) => updateWorkspace((current) => ({ ...current, projects }))} onSkills={(skills) => updateWorkspace((current) => ({ ...current, skills }))} /></PrivatePage>} />
       <Route path="/profile" component={() => <PrivatePage {...privateProps}><SettingsPage profile={workspace.profile} onChange={(profile) => updateWorkspace((current) => ({ ...current, profile }))} /></PrivatePage>} />
       <Route path="/settings" component={() => <PrivatePage {...privateProps}><SettingsPage profile={workspace.profile} onChange={(profile) => updateWorkspace((current) => ({ ...current, profile }))} /></PrivatePage>} />
-      <Route path="/billing" component={() => <PrivatePage {...privateProps}><BillingPage /></PrivatePage>} />
+      <Route path="/billing" component={() => <PrivatePage {...privateProps}><BillingPage accountType={workspace.accountType} onAccountType={(accountType) => updateWorkspace((current) => ({ ...current, accountType }))} /></PrivatePage>} />
       <Route component={NotFound} />
     </Switch>
     </Suspense>
   </RoutedErrorBoundary>;
 }
 
-function PrivatePage({ children, sessionReady, signedIn, onboardingComplete, theme, onToggleTheme }: {
-  children: ReactNode; sessionReady: boolean; signedIn: boolean; onboardingComplete: boolean;
+function PrivatePage({ children, sessionReady, signedIn, onboardingComplete, accountType, theme, onToggleTheme }: {
+  children: ReactNode; sessionReady: boolean; signedIn: boolean; onboardingComplete: boolean; accountType: WorkspaceData['accountType'];
   theme: 'light' | 'dark'; onToggleTheme: () => void;
 }) {
   const [location] = useLocation();
   if (authConfigured && !isDemo && !sessionReady) return <div className="grid min-h-[70dvh] place-items-center"><div className="w-64 space-y-3" aria-label="Loading session"><div className="h-3 animate-pulse bg-muted" /><div className="h-3 w-3/4 animate-pulse bg-muted" /><div className="h-28 animate-pulse bg-muted" /></div></div>;
   if (authConfigured && !isDemo && !signedIn) return <main className="grid min-h-[70dvh] place-items-center p-6"><div className="max-w-md"><div className="eyebrow mb-3">Private workspace</div><h1 className="serif text-4xl">Sign in to continue.</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Your founder workspace is private. Sign in with Supabase Auth to use live content requests.</p><Link href="/sign-in" className="button-press mt-5 inline-flex min-h-10 items-center bg-primary px-4 text-sm text-primary-foreground" data-testid="link-gate-sign-in">Go to sign in</Link></div></main>;
-  if (!onboardingComplete && location !== '/onboarding') return <Redirect to="/onboarding" />;
-  if (onboardingComplete && location === '/onboarding') return <Redirect to="/" />;
+  if ((!onboardingComplete || !accountType) && location !== '/onboarding') return <Redirect to="/onboarding" />;
+  if (onboardingComplete && accountType && location === '/onboarding') return <Redirect to="/" />;
+  if (location === '/onboarding') return <>{children}</>;
   return <AppShell theme={theme} onToggleTheme={onToggleTheme}>{children}</AppShell>;
 }
 
