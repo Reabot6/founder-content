@@ -11,7 +11,7 @@ const helpItems: HelpItem[] = [
   { question: 'How do writing skills work?', answer: 'Skills are reusable writing guidance. Add a structure, tone, or storytelling approach once and choose it when you draft.', href: '/skills', link: 'Manage shared skills' },
   { question: 'Where are my drafts?', answer: 'Open your content library to find drafts and continue editing. Drafts are not published automatically.', href: '/library?workspace=founder', link: 'Open your library' },
   { question: 'Can I change my voice?', answer: 'Add your founder background, point of view, audience, and voice in your profile. Each startup can also have its own voice.', href: '/settings', link: 'Edit founder profile' },
-  { question: 'What happens to my drafts?', answer: 'You can edit and reuse them in your library. Right now, drafts are saved in this browser and are not shared between devices.', href: '/library?workspace=founder', link: 'Open your library' },
+  { question: 'What happens to my drafts?', answer: 'Your drafts sync to your account, so you can edit and reuse them from your library on another device.', href: '/library?workspace=founder', link: 'Open your library' },
   { question: 'Will a post publish automatically?', answer: 'No. Fieldnotes creates drafts for you to review. Nothing is published without your action.', href: '/founder', link: 'Go to my workspace' },
 ];
 

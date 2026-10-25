@@ -16,9 +16,9 @@ export type FounderProfile = {
   website: string;
 };
 
-export type WorkspaceDocument = { id: string; name: string; text: string; addedAt: string };
+export type WorkspaceDocument = { id: string; name: string; text: string; addedAt: string; storagePath?: string };
 export type WorkspaceProject = { id: string; name: string; description: string; website?: string; voice?: string; documents?: WorkspaceDocument[] };
-export type WorkspaceSkill = { id: string; name: string; instructions: string; sourceName?: string };
+export type WorkspaceSkill = { id: string; name: string; instructions: string; sourceName?: string; versionId?: string; versionNumber?: number };
 
 export type WorkspaceData = {
   drafts: DraftRecord[];

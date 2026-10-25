@@ -6,8 +6,10 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Redirect, Route, Switch, useLocation, Router as WouterRouter, Link } from 'wouter';
 import { AppShell } from '@/components/AppShell';
 import { authConfigured, demoDrafts, isDemo, type DraftRecord } from '@/lib/content-api';
-import { readWorkspace, writeWorkspace, type WorkspaceData } from '@/lib/workspace-store';
+import { emptyWorkspace, readWorkspace, writeWorkspace, type WorkspaceData } from '@/lib/workspace-store';
 import { supabase } from '@/lib/supabase';
+import { loadWorkspaceFromSupabase, mergeLocalAndRemote, persistWorkspaceToSupabase } from '@/lib/workspace-persistence';
+import type { Session } from '@supabase/supabase-js';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 0, refetchOnWindowFocus: false } } });
 
@@ -24,22 +26,26 @@ const OnboardingPage = lazy(() => import('@/pages/WorkspacePages').then((module)
 const BillingPage = lazy(() => import('@/pages/WorkspacePages').then((module) => ({ default: module.BillingPage })));
 const StartupWorkspacePage = lazy(() => import('@/pages/WorkspacePages').then((module) => ({ default: module.StartupWorkspacePage })));
 
-function Router({ workspace, updateWorkspace, sessionReady, signedIn, theme, onToggleTheme }: {
+function Router({ workspace, updateWorkspace, sessionReady, signedIn, workspaceReady, persistenceError, theme, onToggleTheme }: {
   workspace: WorkspaceData;
   updateWorkspace: (update: (current: WorkspaceData) => WorkspaceData) => void;
   sessionReady: boolean;
   signedIn: boolean;
+  workspaceReady: boolean;
+  persistenceError: string;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 }) {
   const addDraft = useCallback((draft: DraftRecord) => updateWorkspace((current) => ({ ...current, drafts: [draft, ...current.drafts.filter((item) => item.id !== draft.id)] })), [updateWorkspace]);
   const saveDraft = useCallback((draft: DraftRecord) => updateWorkspace((current) => ({ ...current, drafts: [{ ...draft, updatedAt: new Date().toISOString() }, ...current.drafts.filter((item) => item.id !== draft.id)] })), [updateWorkspace]);
-  const privateProps = { sessionReady, signedIn, onboardingComplete: workspace.onboardingComplete, accountType: workspace.accountType, theme, onToggleTheme };
+  const privateProps = { sessionReady, signedIn, workspaceReady, persistenceError, onboardingComplete: workspace.onboardingComplete, accountType: workspace.accountType, theme, onToggleTheme };
   return <RoutedErrorBoundary>
     <Suspense fallback={<div className="grid min-h-[70dvh] place-items-center p-6"><div className="w-full max-w-xl space-y-4" role="status" aria-label="Loading workspace"><div className="h-3 w-1/3 animate-pulse bg-muted" /><div className="h-10 w-3/4 animate-pulse bg-muted" /><div className="h-32 animate-pulse bg-muted" /></div></div>}>
     <Switch>
       <Route path="/sign-in" component={() => <AuthPage mode="sign-in" />} />
       <Route path="/sign-up" component={() => <AuthPage mode="sign-up" />} />
+      <Route path="/forgot-password" component={() => <AuthPage mode="forgot-password" />} />
+      <Route path="/reset-password" component={() => <AuthPage mode="reset-password" />} />
       <Route path="/onboarding" component={() => <PrivatePage {...privateProps}><OnboardingPage profile={workspace.profile} onProfile={(profile) => updateWorkspace((current) => ({ ...current, profile }))} onComplete={(accountType) => updateWorkspace((current) => ({ ...current, accountType, onboardingComplete: true }))} /></PrivatePage>} />
       <Route path="/" component={() => <PrivatePage {...privateProps}><HomePage accountType={workspace.accountType} profile={workspace.profile} projects={workspace.projects} skills={workspace.skills} /></PrivatePage>} />
       <Route path="/founder" component={() => <PrivatePage {...privateProps}><FounderWorkspacePage drafts={workspace.drafts.filter((draft) => !draft.workspaceId || draft.workspaceId === 'founder')} profile={workspace.profile} /></PrivatePage>} />
@@ -59,18 +65,19 @@ function Router({ workspace, updateWorkspace, sessionReady, signedIn, theme, onT
   </RoutedErrorBoundary>;
 }
 
-function PrivatePage({ children, sessionReady, signedIn, onboardingComplete, accountType, theme, onToggleTheme }: {
-  children: ReactNode; sessionReady: boolean; signedIn: boolean; onboardingComplete: boolean; accountType: WorkspaceData['accountType'];
+function PrivatePage({ children, sessionReady, signedIn, workspaceReady, persistenceError, onboardingComplete, accountType, theme, onToggleTheme }: {
+  children: ReactNode; sessionReady: boolean; signedIn: boolean; workspaceReady: boolean; persistenceError: string; onboardingComplete: boolean; accountType: WorkspaceData['accountType'];
   theme: 'light' | 'dark'; onToggleTheme: () => void;
 }) {
   const [location] = useLocation();
   if (authConfigured && !isDemo && !sessionReady) return <div className="grid min-h-[70dvh] place-items-center"><div className="w-64 space-y-3" aria-label="Loading session"><div className="h-3 animate-pulse bg-muted" /><div className="h-3 w-3/4 animate-pulse bg-muted" /><div className="h-28 animate-pulse bg-muted" /></div></div>;
   if (authConfigured && !isDemo && !signedIn) return <main className="grid min-h-[70dvh] place-items-center p-6"><div className="max-w-md"><div className="eyebrow mb-3">Private workspace</div><h1 className="serif text-4xl">Sign in to continue.</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Your founder workspace is private. Sign in with Supabase Auth to use live content requests.</p><Link href="/sign-in" className="button-press mt-5 inline-flex min-h-10 items-center bg-primary px-4 text-sm text-primary-foreground" data-testid="link-gate-sign-in">Go to sign in</Link></div></main>;
+  if (authConfigured && !isDemo && signedIn && !workspaceReady) return <div className="grid min-h-[70dvh] place-items-center"><div className="w-64 space-y-3" role="status" aria-label="Loading your cloud workspace"><div className="h-3 animate-pulse bg-muted" /><div className="h-3 w-3/4 animate-pulse bg-muted" /><div className="h-28 animate-pulse bg-muted" /></div></div>;
   if ((!onboardingComplete || !accountType) && location !== '/onboarding') return <Redirect to="/onboarding" />;
   if (onboardingComplete && accountType && location === '/onboarding') return <Redirect to="/" />;
   if (onboardingComplete && accountType === 'founder' && (location === '/projects' || location.startsWith('/startups/'))) return <Redirect to="/billing" />;
   if (location === '/onboarding') return <>{children}</>;
-  return <AppShell theme={theme} onToggleTheme={onToggleTheme} accountType={accountType}>{children}</AppShell>;
+  return <AppShell theme={theme} onToggleTheme={onToggleTheme} accountType={accountType} persistenceError={persistenceError}>{children}</AppShell>;
 }
 
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {
@@ -84,12 +91,25 @@ function App() {
   const workspaceRef = useRef(workspace);
   const [sessionReady, setSessionReady] = useState(!authConfigured || isDemo);
   const [signedIn, setSignedIn] = useState(false);
+  const [workspaceReady, setWorkspaceReady] = useState(!authConfigured || isDemo);
+  const [persistenceError, setPersistenceError] = useState('');
+  const remoteWorkspaceRef = useRef<WorkspaceData>(emptyWorkspace);
+  const persistenceQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const persistenceTimerRef = useRef<number | undefined>(undefined);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try { return localStorage.getItem('fieldnotes-theme') === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
   });
 
   const updateWorkspace = useCallback((update: (current: WorkspaceData) => WorkspaceData) => {
-    const next = update(workspaceRef.current);
+    const current = workspaceRef.current;
+    const next = update(current);
+    const oldSkills = new Map(current.skills.map((skill) => [skill.id, skill]));
+    next.skills = next.skills.map((skill) => {
+      const old = oldSkills.get(skill.id);
+      if (!old) return { ...skill, versionId: skill.versionId ?? crypto.randomUUID(), versionNumber: skill.versionNumber ?? 1 };
+      if (old.instructions !== skill.instructions) return { ...skill, versionId: crypto.randomUUID(), versionNumber: old.versionId ? (old.versionNumber ?? 1) + 1 : old.versionNumber ?? skill.versionNumber ?? 1 };
+      return { ...skill, versionId: old.versionId ?? skill.versionId, versionNumber: old.versionNumber ?? skill.versionNumber };
+    });
     workspaceRef.current = next;
     setWorkspace(next);
     writeWorkspace(ownerId, next);
@@ -112,31 +132,91 @@ function App() {
   useEffect(() => {
     if (!supabase || isDemo) {
       setSessionReady(true);
+      setWorkspaceReady(true);
       return;
     }
     let alive = true;
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (!alive) return;
-      setSignedIn(Boolean(data.session));
-      setOwnerId(data.session?.user.id ?? 'local');
+    let hydrationId = 0;
+    const hydrateSession = async (session: Session | null) => {
+      const currentHydration = ++hydrationId;
       setSessionReady(true);
-      if (error) console.error('Supabase session check failed.');
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSignedIn(Boolean(session));
-      setOwnerId(session?.user.id ?? 'local');
-      setSessionReady(true);
+      if (!session) {
+        const local = readWorkspace('local');
+        setOwnerId('local');
+        workspaceRef.current = local;
+        remoteWorkspaceRef.current = emptyWorkspace;
+        setWorkspace(local);
+        setWorkspaceReady(true);
+        setPersistenceError('');
+        return;
+      }
+      setWorkspaceReady(false);
+      const userId = session.user.id;
+      const local = readWorkspace(userId);
+      setOwnerId(userId);
+      try {
+        const metadataName = session.user.user_metadata?.full_name;
+        const result = await loadWorkspaceFromSupabase(userId, typeof metadataName === 'string' ? metadataName : '');
+        if (!alive || currentHydration !== hydrationId) return;
+        const next = mergeLocalAndRemote(local, result.workspace, result.hadRemoteData);
+        remoteWorkspaceRef.current = result.workspace;
+        workspaceRef.current = next;
+        setWorkspace(next);
+        setPersistenceError('');
+      } catch (error) {
+        if (!alive || currentHydration !== hydrationId) return;
+        remoteWorkspaceRef.current = emptyWorkspace;
+        workspaceRef.current = local;
+        setWorkspace(local);
+        setPersistenceError(error instanceof Error ? error.message : 'Your cloud workspace could not be loaded.');
+      } finally {
+        if (alive && currentHydration === hydrationId) setWorkspaceReady(true);
+      }
+    };
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      window.setTimeout(() => { void hydrateSession(session); }, 0);
+    });
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) console.error('Supabase session check failed.');
+      if (alive) void hydrateSession(data.session);
     });
     return () => {
       alive = false;
+      hydrationId++;
       listener.subscription.unsubscribe();
+      window.clearTimeout(persistenceTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (authConfigured && !isDemo && signedIn && !workspaceReady) return;
+    writeWorkspace(ownerId, workspace);
+    if (!authConfigured || isDemo || !signedIn || !workspaceReady || !supabase) return;
+    window.clearTimeout(persistenceTimerRef.current);
+    persistenceTimerRef.current = window.setTimeout(() => {
+      const userId = ownerId;
+      const snapshot = workspaceRef.current;
+      persistenceQueueRef.current = persistenceQueueRef.current.then(async () => {
+        if (!supabase) return;
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user.id !== userId) return;
+        try {
+          const saved = await persistWorkspaceToSupabase(userId, snapshot, remoteWorkspaceRef.current);
+          remoteWorkspaceRef.current = saved;
+          setPersistenceError('');
+        } catch (error) {
+          setPersistenceError(error instanceof Error ? error.message : 'Cloud sync failed. Your changes remain saved on this device.');
+        }
+      });
+    }, 700);
+    return () => window.clearTimeout(persistenceTimerRef.current);
+  }, [workspace, ownerId, signedIn, workspaceReady]);
 
   return <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-        <Router workspace={workspace} updateWorkspace={updateWorkspace} sessionReady={sessionReady} signedIn={signedIn} theme={theme} onToggleTheme={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} />
+        <Router workspace={workspace} updateWorkspace={updateWorkspace} sessionReady={sessionReady} signedIn={signedIn} workspaceReady={workspaceReady} persistenceError={persistenceError} theme={theme} onToggleTheme={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} />
       </WouterRouter>
       <Toaster />
     </TooltipProvider>

@@ -9,6 +9,16 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/@supabase/')) return 'supabase';
+            if (id.includes('node_modules/framer-motion/') || id.includes('node_modules/motion-dom/')) return 'motion';
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

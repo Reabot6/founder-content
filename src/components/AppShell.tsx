@@ -27,7 +27,7 @@ function NavLinks({ close }: { close?: () => void }) {
   ))}</>;
 }
 
-export function AppShell({ children, theme, onToggleTheme, accountType }: { children: ReactNode; theme: 'light' | 'dark'; onToggleTheme: () => void; accountType: 'founder' | 'founder_plus_startups' | null }) {
+export function AppShell({ children, theme, onToggleTheme, accountType, persistenceError = '' }: { children: ReactNode; theme: 'light' | 'dark'; onToggleTheme: () => void; accountType: 'founder' | 'founder_plus_startups' | null; persistenceError?: string }) {
   const [location] = useLocation();
   const reducedMotion = useReducedMotion();
   const visibleSpaceLinks = spaceLinks.filter(({ href }) => href !== '/projects' || accountType === 'founder_plus_startups');
@@ -68,6 +68,7 @@ export function AppShell({ children, theme, onToggleTheme, accountType }: { chil
           </button>
         </div>
       </header>
+      {persistenceError && <div role="alert" className="mx-5 mt-4 border border-destructive/40 bg-destructive/5 px-4 py-3 text-xs leading-5 text-destructive sm:mx-8">Cloud sync needs attention: {persistenceError} Your recent changes are still saved on this device.</div>}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={location} className="route-screen" initial={reducedMotion ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={reducedMotion ? undefined : { opacity: 0, y: -8 }} transition={{ duration: reducedMotion ? 0 : 0.28, ease: 'easeOut' }}>
           {children}

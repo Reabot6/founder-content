@@ -36,7 +36,9 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
   const importedProjects = projects.filter((item) => importedProjectIds.includes(item.id) && item.id !== selectedProject?.id);
   const contextFor = (item: WorkspaceProject) => [item.name, item.website && `Website: ${item.website}`, item.description, item.voice && `Startup-specific voice: ${item.voice}`, ...(item.documents ?? []).map((doc) => `Source: ${doc.name}\n${doc.text}`)].filter(Boolean).join('\n\n');
   const combinedProjectContext = [selectedProject, ...importedProjects].filter((item): item is WorkspaceProject => Boolean(item)).map(contextFor).join('\n\n--- Imported startup context ---\n\n').slice(0, 60_000);
-  const selectedSkillInstructions = availableSkills.filter((item) => skills.includes(item.id)).map((item) => `${item.name}: ${item.instructions}`);
+  const selectedSkillItems = availableSkills.filter((item) => skills.includes(item.id));
+  const selectedSkillInstructions = selectedSkillItems.map((item) => `${item.name}: ${item.instructions}`);
+  const selectedSkillVersionIds = selectedSkillItems.map((item) => item.versionId).filter((id): id is string => Boolean(id));
   const founderContext = Object.fromEntries(Object.entries(profile).filter(([key, value]) => key !== 'company' && key !== 'companyDescription' && value.trim())) as Record<string, string>;
   const requestMutation = useMutation({
     mutationFn: async () => {
@@ -48,7 +50,7 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
           content_format: format,
           platform,
           objective: valid.data.objective,
-          skill_version_ids: [],
+          skill_version_ids: selectedSkillVersionIds,
           founder_context: founderContext,
           ...(selectedProject ? { project_id: selectedProject.id, project_context: combinedProjectContext } : {}),
           ...(selectedSkillInstructions.length ? { custom_skill_instructions: selectedSkillInstructions } : {}),
@@ -64,7 +66,7 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
         target_format: format,
         target_platform: platform,
         objective: objective.trim(),
-        skill_version_ids: [],
+        skill_version_ids: selectedSkillVersionIds,
         founder_context: founderContext,
         ...(selectedProject ? { project_id: selectedProject.id, project_context: combinedProjectContext } : {}),
         ...(selectedSkillInstructions.length ? { custom_skill_instructions: selectedSkillInstructions } : {}),
@@ -251,7 +253,7 @@ function ResultEditor({ content, format, platform, evaluator, appliedSkills, dem
     {demo && <div className="mb-5"><Notice testId="notice-demo-result">Demonstration output. A production model was not used.</Notice></div>}
     <label htmlFor="draft-editor" className="label">Review and edit</label>
     <textarea id="draft-editor" className="field min-h-[380px] resize-y whitespace-pre-wrap px-5 py-5 font-serif text-[17px] leading-[1.8] sm:px-8 sm:py-7 sm:text-lg" value={draft} onChange={(e) => { setDraft(e.target.value); setSaved(false); }} data-testid="input-draft-editor" />
-    <div className="mt-3 flex flex-wrap items-center gap-3"><button type="button" className="button-press inline-flex min-h-10 items-center gap-2 border px-3 text-sm" onClick={() => { onSave(draft); setSaved(true); }}><FloppyDisk size={16} />Save edits</button>{saved && <span role="status" className="inline-flex items-center gap-1 text-sm text-muted-foreground"><Check size={15} />Saved to this device</span>}<span className="text-xs text-muted-foreground">Private draft · not published</span></div>
+    <div className="mt-3 flex flex-wrap items-center gap-3"><button type="button" className="button-press inline-flex min-h-10 items-center gap-2 border px-3 text-sm" onClick={() => { onSave(draft); setSaved(true); }}><FloppyDisk size={16} />Save edits</button>{saved && <span role="status" className="inline-flex items-center gap-1 text-sm text-muted-foreground"><Check size={15} />Saved to your account</span>}<span className="text-xs text-muted-foreground">Private draft · not published</span></div>
     <div className="mt-6 grid gap-4 sm:grid-cols-2">
       <div className="panel p-4"><div className="eyebrow mb-2">Evaluator</div><div className="text-sm font-medium" data-testid="text-evaluator-status">{evaluator.status}</div>{typeof evaluator.confidence_score === 'number' && <div className="mt-1 text-xs text-muted-foreground">Confidence: {Math.round(evaluator.confidence_score * 100)}%</div>}{evaluator.reasoning && <p className="mt-2 text-xs leading-5 text-muted-foreground">{evaluator.reasoning}</p>}</div>
       <div className="panel p-4"><div className="eyebrow mb-2">Applied skills</div>{appliedSkills.length ? <p className="text-xs text-muted-foreground">{appliedSkills.join(', ')}</p> : <p className="text-xs text-muted-foreground">{demo ? 'No local skills were selected.' : 'No applied skill versions returned.'}</p>}</div>

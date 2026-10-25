@@ -10,7 +10,7 @@ This is the implementation handoff for connecting the Fieldnotes frontend to the
 | Authenticated API calls | Sends the current Supabase access token as `Authorization: Bearer <JWT>`. | Verify the JWT server-side and derive the user ID from its `sub` claim. Never accept a client-supplied owner ID as authority. |
 | Content generation | Calls the generate webhook, receives a job ID, polls, and renders the completed draft. | Replace mock responses with the real async workflow; persist jobs/results and return the documented schemas. |
 | Repurposing | Calls the repurpose webhook with the selected source content ID. | Confirm the source draft belongs to the authenticated user and is eligible for repurposing. |
-| Founder/startup profile, workspaces, skills, source files, drafts | Stored in per-user browser `localStorage`; no server sync. | Add authenticated persistence APIs and migrate the frontend to them before founders expect cross-device storage. |
+| Founder/startup profile, workspaces, skills, source files, drafts | Direct `supabase-js` CRUD under the signed-in user's JWT/RLS, with per-user `localStorage` cache. | Confirm table/status/JSON contracts and provision the private source bucket. |
 | Billing | Calls a checkout webhook and validates the returned Stripe URL. | Implement the current plan IDs, trusted server-side pricing/discounts, Stripe webhook sync, entitlements, and subscription management. |
 | Automatic publishing, scraping, and video transcription | Not implemented. | Separate integrations are required; do not imply these happen yet. |
 
@@ -24,18 +24,18 @@ The Railway origin currently configured for production is `https://heroic-wonder
 2. The frontend calls Supabase `auth.signUp({ email, password, options: { data: { full_name } } })` directly.
 3. If email confirmation is enabled and Supabase returns no session, the UI tells the founder to confirm their email. They are not treated as signed in yet.
 4. After confirmation, Supabase redirects back to the configured app URL. The founder signs in if a session was not established automatically.
-5. Once a session exists, the frontend routes to `/` and requires onboarding if no local onboarding record exists.
+5. Once a session exists, the frontend loads the user's Supabase workspace, merges any per-user local cache, and requires onboarding if no onboarding record exists.
 
 ### Login and session
 
 1. `/sign-in` calls Supabase `auth.signInWithPassword` directly.
 2. `App.tsx` reads `auth.getSession()` during startup and subscribes to `onAuthStateChange`.
-3. On an authenticated session, the workspace is keyed locally by the Supabase user ID. On sign-out, the app returns to a local unauthenticated state.
+3. On an authenticated session, the app hydrates remote data and caches it under the Supabase user ID. On sign-out, the app returns to the unauthenticated state.
 4. `src/lib/content-api.ts` reads the current Supabase session for each API request. It sends the access token in the Authorization header. If no token is present outside demo mode, the request fails with `AUTH_REQUIRED`.
 
 ### Onboarding
 
-Onboarding is intentionally short: the founder supplies a display name and checks whether they have a startup. This is not a server request today. It saves `profile.name`, `accountType` (`founder` or `founder_plus_startups`), and `onboardingComplete` in browser local storage. It does not create a startup record; the founder adds a startup by name later from the Startups page.
+Onboarding is intentionally short: the founder supplies a display name and checks whether they have a startup. It saves `profile.name`, `accountType` (`founder` or `founder_plus_startups`), and `onboardingComplete` locally and syncs them to `founder_profiles.voice_profile`. It does not create a startup record; the founder adds a startup by name later from the Startups page.
 
 After onboarding, a founder-only account sees personal writing and shared context tools. Startup navigation is hidden unless the startup checkbox was selected; direct startup routes redirect to billing for founder-only accounts. A selected account type is only frontend state today and is not proof of paid entitlement. The backend must enforce entitlement independently.
 
@@ -223,7 +223,18 @@ The success/cancel query string is only a UI message. It is not proof of payment
 
 ## 8. Persistence APIs needed before founders rely on the app
 
-The current `WorkspaceData` lives entirely in `localStorage` under a key scoped to the current Supabase user. Draft edits also save locally. Local browser data does not sync between browsers/devices and may be lost if browser storage is cleared. No API currently uploads files or stores these records.
+The current `WorkspaceData` is cached in `localStorage` under a key scoped to the Supabase user and synchronized to Supabase after edits. `src/lib/workspace-persistence.ts` reads/writes the deployed tables directly through the authenticated Supabase client; RLS remains the ownership boundary. Sync is debounced by 700ms, failures remain visible in the app shell, and a failed read keeps the local cache available. This is a first integration pass: verify it against the backend's live policies and enum constraints before inviting users.
+
+### Current Supabase table mapping
+
+| Frontend resource | Deployed table | Mapping |
+| --- | --- | --- |
+| Founder profile and onboarding | `founder_profiles` | `user_id` plus JSON `voice_profile`; onboarding/account type are stored in that JSON. |
+| Startup workspaces | `projects` | `id`, `user_id`, `name`, `status`; JSON `description` contains description, website, voice, and source document metadata/text. |
+| Shared skills | `skills` + `skill_versions` | Skill name/description and active status; immutable instructions use version IDs and applicable format/platform arrays. |
+| Drafts | `content_history` | Draft content, format, platform, project, topic, objective, status, and parent content ID. |
+
+The live schema has no separate `profiles`, `workspaces`, or `drafts` relations. Column/status constraints should be checked against the deployed schema. The `workspace_sources` Storage bucket was not present when integration was checked; the frontend keeps each source's text in its RLS-protected `projects.description` JSON until the private bucket exists. After provisioning the bucket, new/changed source files use Storage and the project row retains the object path.
 
 Recommended authenticated API surface (the exact route naming can be aligned with the backend):
 
@@ -241,9 +252,9 @@ Use Supabase RLS (or equivalent API-side ownership checks) on every user-owned t
 
 ## 9. Frontend/backend differences to resolve together
 
-1. **Skills:** the API shape has `skill_version_ids`, but the frontend currently sends `[]` and sends selected skill text as `custom_skill_instructions`. Once the backend exposes persisted skill versions, update the frontend to send their IDs (and decide whether to keep the text field as a compatibility path).
-2. **IDs and project context:** current startup records are browser-generated IDs, not server UUIDs. The backend must own canonical startup IDs. Once startup CRUD is connected, replace local IDs with response IDs. For cross-startup context import, today the frontend concatenates selected context into `project_context`; consider adding an explicit `imported_project_ids` array and backend authorization for those IDs.
-3. **Draft durability:** generation completion is saved to local storage after polling. Connect the completed result to a draft upsert/list API before promising cross-device library access.
+1. **Skills:** the frontend now stores immutable skill versions and sends selected `skill_version_ids`, with custom instruction text retained for compatibility. Confirm evaluator workflows consume those exact IDs.
+2. **IDs and project context:** startup IDs are generated client-side as UUIDs and persisted directly to `projects`. For cross-startup context import, the frontend concatenates selected context into `project_context`; consider adding an explicit `imported_project_ids` array and backend authorization for those IDs.
+3. **Draft durability:** the frontend upserts completed and edited drafts into `content_history`. The AI workflow's `complete_generation_job` RPC may already insert the generated result; confirm the same `content_id` and fields are safe to upsert from the frontend.
 4. **Checkout activation:** current frontend selection can set `accountType` locally before checkout. The API/backend must enforce plan entitlement and startup capacity regardless of this value; ideally return/refresh authoritative entitlements after Stripe confirms payment.
 5. **Session refresh/expiry:** expired tokens should return the standardized 401 error. Supabase client refreshes sessions; frontend shows a sign-in-again message if there is no usable token.
 6. **Source ingestion and publishing:** website URLs are only context text at present; the browser does not crawl them. Uploaded video, PDFs, automatic posting, and auto-post scheduling need distinct backend workflows, permission controls, and product UI before they can be advertised.
@@ -260,11 +271,12 @@ Use Supabase RLS (or equivalent API-side ownership checks) on every user-owned t
 ## 11. Integration and launch checklist
 
 - [ ] Configure Supabase email confirmation, production redirect URL, password recovery, and session policies.
-- [ ] Create profile bootstrap and authenticated profile/workspace persistence APIs with ownership enforcement/RLS.
+- [ ] Verify direct client CRUD against RLS for profiles, projects, skills, versions, and content history; test a second user cannot read or mutate the first user's data.
 - [ ] Implement generation and repurpose workflows that return `202 accepted` with durable job IDs.
 - [ ] Implement status polling with the exact processing/completed/error shapes above; verify `job_id` belongs to the JWT user.
-- [ ] Persist content results, edited drafts, and source references; make repurpose ownership checks use those persisted records.
-- [ ] Decide and implement canonical skill version IDs, then connect selected skills to them.
+- [ ] Confirm generation RPC content rows can safely be upserted by the frontend and repurposed by their stable IDs.
+- [ ] Confirm the evaluator consumes selected skill version IDs and project references from each request.
+- [ ] Create the private `workspace_sources` bucket with per-user object policies (or keep inline JSON source fallback until ready).
 - [ ] Configure server-owned Stripe prices and the founder/startup bundle math; implement webhook-driven entitlements and startup limits.
 - [ ] Confirm Vercel rewrites forward auth headers and query strings to Railway; smoke-check all four production routes.
 - [ ] Test user A cannot read or mutate user B's profile, startups, sources, skills, jobs, content, or billing records.

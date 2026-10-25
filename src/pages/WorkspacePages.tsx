@@ -55,8 +55,8 @@ export function LibraryPage({ drafts, workspaceId }: { drafts: DraftRecord[]; wo
     {filtered.length ? <div className="grid gap-3">{filtered.map((draft) => <article key={draft.id} className="panel p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2"><div className="eyebrow">{formatLabel(draft.format)} · {draft.platform}</div><span className="rounded-sm bg-[#eef2ea] px-2 py-1 text-[11px] uppercase tracking-wider text-[#546750]">Draft</span></div>
       <h2 className="serif mt-3 text-2xl">{draft.title}</h2><p className="mt-2 line-clamp-3 whitespace-pre-line text-sm leading-6 text-muted-foreground">{draft.text}</p>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><span className="flex items-center gap-2 text-xs text-muted-foreground"><ClockCounterClockwise size={15} />Saved on this device{draft.updatedAt ? ` · ${new Date(draft.updatedAt).toLocaleDateString()}` : ''}</span><div className="flex gap-2"><Link href={`/repurpose${workspaceQuery ? `${workspaceQuery}&` : '?'}source=${encodeURIComponent(draft.id)}`} className="button-press inline-flex min-h-10 items-center gap-2 border px-3 text-sm">Adapt</Link><Link href={`/draft/${encodeURIComponent(draft.id)}`} className="button-press inline-flex min-h-10 items-center gap-2 bg-primary px-3 text-sm text-primary-foreground">Open draft <ArrowRight size={15} /></Link></div></div>
-    </article>)}</div> : <div className="border border-dashed px-5 py-12 text-center"><div className="mx-auto grid h-10 w-10 place-items-center border"><MagnifyingGlass size={18} /></div><h2 className="serif mt-4 text-2xl">{entries.length ? 'No drafts match those filters' : 'Your library is ready when you are'}</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">{entries.length ? 'Clear a filter or try another search.' : 'Create a draft and it will be saved here on this device.'}</p>{!entries.length && <Link href={`/create${workspaceQuery}`} className="mt-5 inline-flex min-h-10 items-center gap-2 text-sm underline decoration-border underline-offset-4">Start a draft <ArrowRight size={15} /></Link>}</div>}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><span className="flex items-center gap-2 text-xs text-muted-foreground"><ClockCounterClockwise size={15} />Saved to your workspace{draft.updatedAt ? ` · ${new Date(draft.updatedAt).toLocaleDateString()}` : ''}</span><div className="flex gap-2"><Link href={`/repurpose${workspaceQuery ? `${workspaceQuery}&` : '?'}source=${encodeURIComponent(draft.id)}`} className="button-press inline-flex min-h-10 items-center gap-2 border px-3 text-sm">Adapt</Link><Link href={`/draft/${encodeURIComponent(draft.id)}`} className="button-press inline-flex min-h-10 items-center gap-2 bg-primary px-3 text-sm text-primary-foreground">Open draft <ArrowRight size={15} /></Link></div></div>
+    </article>)}</div> : <div className="border border-dashed px-5 py-12 text-center"><div className="mx-auto grid h-10 w-10 place-items-center border"><MagnifyingGlass size={18} /></div><h2 className="serif mt-4 text-2xl">{entries.length ? 'No drafts match those filters' : 'Your library is ready when you are'}</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">{entries.length ? 'Clear a filter or try another search.' : 'Create a draft and it will sync to your account.'}</p>{!entries.length && <Link href={`/create${workspaceQuery}`} className="mt-5 inline-flex min-h-10 items-center gap-2 text-sm underline decoration-border underline-offset-4">Start a draft <ArrowRight size={15} /></Link>}</div>}
   </div>;
 }
 
@@ -68,11 +68,11 @@ export function DraftDetailPage({ draft, onSave }: { draft?: DraftRecord; onSave
   const save = (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); onSave(draft); setSaved(true); };
   return <div className="page-wrap max-w-5xl">
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><Link href={`/library${workspaceQuery}`} className="inline-flex min-h-10 items-center gap-2 text-sm underline decoration-border underline-offset-4">← Library</Link><div className="flex gap-2"><button className="button-press inline-flex min-h-10 items-center gap-2 border px-3 text-sm" onClick={async () => { try { await navigator.clipboard.writeText(draft.text); setCopied(true); window.setTimeout(() => setCopied(false), 1600); } catch { setCopied(false); } }}><Copy size={16} />{copied ? 'Copied' : 'Copy'}</button><Link href={`/repurpose${workspaceQuery}&source=${encodeURIComponent(draft.id)}`} className="button-press inline-flex min-h-10 items-center gap-2 border px-3 text-sm">Adapt this idea <ArrowRight size={15} /></Link></div></div>
-    <PageHeading kicker={`${formatLabel(draft.format)} · ${draft.platform}`} title="Review your draft" description="Edits save on this device. You can come back to them later." />
+    <PageHeading kicker={`${formatLabel(draft.format)} · ${draft.platform}`} title="Review your draft" description="Edits sync to your account automatically." />
     <form onSubmit={save}>
       <label className="label" htmlFor="draft-title">Draft title</label><input id="draft-title" className="field mb-5 text-lg" value={draft.title} onChange={(event) => { setSaved(false); onSave({ ...draft, title: event.target.value }); }} />
       <label className="label" htmlFor="draft-content">Your content</label><textarea id="draft-content" className="field min-h-[52vh] resize-y px-5 py-5 font-serif text-lg leading-[1.8] sm:px-8" value={draft.text} onChange={(event) => { setSaved(false); onSave({ ...draft, text: event.target.value }); }} />
-      <div className="mt-4 flex flex-wrap items-center gap-3"><button type="submit" className="button-press inline-flex min-h-11 items-center gap-2 bg-primary px-4 text-sm text-primary-foreground"><FloppyDisk size={17} />Save draft</button>{saved && <span role="status" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><Check size={16} />Saved on this device</span>}<span className="text-xs text-muted-foreground">Private draft · not published</span></div>
+      <div className="mt-4 flex flex-wrap items-center gap-3"><button type="submit" className="button-press inline-flex min-h-11 items-center gap-2 bg-primary px-4 text-sm text-primary-foreground"><FloppyDisk size={17} />Save draft</button>{saved && <span role="status" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><Check size={16} />Saved to your account</span>}<span className="text-xs text-muted-foreground">Private draft · not published</span></div>
     </form>
   </div>;
 }
@@ -98,7 +98,7 @@ export function FoundationPage({ page, projects, skills, onProjects, onSkills }:
   };
   const editItem = (id: string, itemName: string, itemDescription: string) => { setEditingId(id); setName(itemName); setDescription(itemDescription); document.getElementById('context-name')?.focus(); };
   const deleteItem = (id: string, label: string) => {
-    if (!window.confirm(`Delete “${label}” from this device?`)) return;
+      if (!window.confirm(`Delete “${label}” from your account?`)) return;
     if (isProjects) onProjects(projects.filter((item) => item.id !== id)); else onSkills(skills.filter((item) => item.id !== id));
     if (editingId === id) { setEditingId(''); setName(''); setDescription(''); }
   };
@@ -117,8 +117,8 @@ export function FoundationPage({ page, projects, skills, onProjects, onSkills }:
         <label className="label mt-4" htmlFor="context-name">{isProjects ? 'Project name' : 'Skill name'}</label><input id="context-name" className="field" value={name} onChange={(event) => setName(event.target.value)} placeholder={isProjects ? 'e.g. Northstar Studio' : 'e.g. Clear openings'} required />
         <label className="label mt-4" htmlFor="context-description">Instructions to apply</label><textarea id="context-description" className="field min-h-32 resize-y leading-6" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the technique in a few practical sentences…" required />
         <label className="mt-4 block"><span className="label">Import a text file <span className="font-normal text-muted-foreground">(optional)</span></span><input className="field h-auto py-2" type="file" accept=".txt,.md,.csv,text/plain,text/markdown" onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; if (file.size > 100_000) { window.alert('Choose a text file under 100 KB.'); return; } const text = await file.text(); setDescription((current) => current ? `${current}\n\n${text}` : text); if (!name) setName(file.name.replace(/\.[^.]+$/, '')); }} /><span className="mt-1 block text-xs text-muted-foreground">Text is added to the instructions so you can shape it into a reusable skill. Video transcription needs backend support.</span></label>
-        <div className="mt-4 flex gap-2"><button className="button-press inline-flex min-h-11 items-center gap-2 bg-primary px-4 text-sm text-primary-foreground" type="submit"><Plus size={16} />{editingId ? 'Save changes' : 'Save on this device'}</button>{editingId && <button type="button" className="min-h-11 border px-3 text-sm" onClick={() => { setEditingId(''); setName(''); setDescription(''); }}>Cancel</button>}</div>
-        <p className="mt-3 text-xs leading-5 text-muted-foreground">Available to your workspace on this device. You can edit or remove it at any time.</p>
+        <div className="mt-4 flex gap-2"><button className="button-press inline-flex min-h-11 items-center gap-2 bg-primary px-4 text-sm text-primary-foreground" type="submit"><Plus size={16} />{editingId ? 'Save changes' : 'Save skill'}</button>{editingId && <button type="button" className="min-h-11 border px-3 text-sm" onClick={() => { setEditingId(''); setName(''); setDescription(''); }}>Cancel</button>}</div>
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">Skills sync to your account and are available in every workspace.</p>
       </form>
       <section>
         <div className="mb-3 flex items-center justify-between"><h2 className="serif text-2xl">{isProjects ? 'Your projects' : 'Your skills'}</h2><span className="eyebrow">{rows.length} saved</span></div>
@@ -138,11 +138,11 @@ export function StartupWorkspacePage({ project, projects, drafts, profile, skill
     if (!/\.(txt|md|csv)$/i.test(file.name)) { setNotice('This first version can read .txt, .md, and .csv files. PDF and video processing needs the backend ingestion flow.'); return; }
     const text = await file.text();
     const document: WorkspaceDocument = { id: crypto.randomUUID(), name: file.name, text: text.slice(0, 40_000), addedAt: new Date().toISOString() };
-    update({ documents: [...documents, document] }); setNotice(`${file.name} added to this device’s source library.`);
+    update({ documents: [...documents, document] }); setNotice(`${file.name} added to this startup’s private source library.`);
   }
   function removeDocument(id: string) { update({ documents: documents.filter((item) => item.id !== id) }); }
   function removeStartup() {
-    if (!window.confirm(`Delete the ${project.name} workspace from this device? Its saved drafts remain in your library.`)) return;
+    if (!window.confirm(`Delete the ${project.name} workspace from your account? Its saved drafts remain in your library.`)) return;
     onProjects(projects.filter((item) => item.id !== project.id)); window.location.assign('/projects');
   }
   return <div className="page-wrap max-w-6xl">
@@ -156,10 +156,10 @@ export function StartupWorkspacePage({ project, projects, drafts, profile, skill
         <label className="sm:col-span-2"><span className="label">What does this product do?</span><textarea className="field min-h-24" value={project.description} onChange={(event) => update({ description: event.target.value })} placeholder="Who it helps, the problem it solves, current priorities…" /></label>
         <label className="sm:col-span-2"><span className="label">Voice for this startup</span><textarea className="field min-h-24" value={project.voice ?? ''} onChange={(event) => update({ voice: event.target.value })} placeholder="For this product, sound more technical, playful, direct…" /><span className="mt-1 block text-xs text-muted-foreground">Overrides or refines your founder voice for this product.</span></label>
         <div className="sm:col-span-2"><div className="mb-2 flex items-center justify-between"><div><div className="text-sm font-medium">Source library</div><div className="mt-1 text-xs text-muted-foreground">Documents can ground drafts in product details and real material.</div></div><label className="button-press inline-flex min-h-10 cursor-pointer items-center gap-2 border px-3 text-sm"><UploadSimple size={16} />Add text file<input className="sr-only" type="file" accept=".txt,.md,.csv,text/plain,text/markdown" onChange={(event) => { void addDocument(event.target.files?.[0]); event.currentTarget.value = ''; }} /></label></div>
-          {documents.length ? <div className="grid gap-2">{documents.map((doc) => <div key={doc.id} className="flex items-center gap-3 border px-3 py-2"><FileText size={16} /><span className="min-w-0 flex-1 truncate text-sm">{doc.name}</span><button className="text-xs underline" onClick={() => removeDocument(doc.id)}>Remove</button></div>)}</div> : <div className="border border-dashed px-4 py-5 text-sm text-muted-foreground">No source files yet. Add a small text or Markdown file; its contents stay on this device and inform draft requests.</div>}
+          {documents.length ? <div className="grid gap-2">{documents.map((doc) => <div key={doc.id} className="flex items-center gap-3 border px-3 py-2"><FileText size={16} /><span className="min-w-0 flex-1 truncate text-sm">{doc.name}</span><button className="text-xs underline" onClick={() => removeDocument(doc.id)}>Remove</button></div>)}</div> : <div className="border border-dashed px-4 py-5 text-sm text-muted-foreground">No source files yet. Add a small text or Markdown file; it stays private to this workspace and informs draft requests.</div>}
           {notice && <p role="status" className="mt-2 text-xs text-muted-foreground">{notice}</p>}
         </div>
-        <div className="flex items-center justify-between sm:col-span-2"><p className="text-xs text-muted-foreground">Changes save automatically on this device.</p><button className="text-xs text-destructive underline" type="button" onClick={removeStartup}>Delete startup</button></div>
+        <div className="flex items-center justify-between sm:col-span-2"><p className="text-xs text-muted-foreground">Changes sync automatically to your account.</p><button className="text-xs text-destructive underline" type="button" onClick={removeStartup}>Delete startup</button></div>
       </div>
     </details>
     <ContentWorkspace mode="create" drafts={drafts} onDraft={onDraft} profile={profile} projects={projects} skills={skills} workspaceProject={project} />
@@ -170,7 +170,7 @@ export function SettingsPage({ profile, onChange }: { profile: FounderProfile; o
   const [saved, setSaved] = useState(false);
   const update = (field: keyof FounderProfile, value: string) => { onChange({ ...profile, [field]: value }); setSaved(false); };
   const clearProfile = () => {
-    if (!window.confirm('Clear your founder profile from this device? Your drafts will stay.')) return;
+    if (!window.confirm('Clear your founder profile from your account? Your drafts will stay.')) return;
     onChange(emptyProfile); setSaved(true);
   };
   const sections: { kicker: string; title: string; fields: { key: keyof FounderProfile; label: string; placeholder: string; long?: boolean }[] }[] = [
@@ -183,13 +183,13 @@ export function SettingsPage({ profile, onChange }: { profile: FounderProfile; o
   ];
   return <div className="page-wrap">
     <PageHeading kicker="Your context" title="Founder profile" description="Set this up once. We’ll include it as context whenever you create or adapt a draft." />
-    <div className="mb-7 max-w-3xl"><Notice testId="notice-profile-local">Saved on this device and included with your content requests. Backend account sync can be added when the profile endpoint is available.</Notice></div>
+    <div className="mb-7 max-w-3xl"><Notice testId="notice-profile-local">Your founder profile syncs with your account and is included with content requests.</Notice></div>
     <form className="max-w-4xl" onSubmit={(event) => { event.preventDefault(); setSaved(true); }}>
       {sections.map((section, sectionIndex) => <details key={section.kicker} className="mb-3 border px-5" open={sectionIndex === 0}>
         <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden"><span><span className="eyebrow">{section.kicker}</span><span className="serif mt-1 block text-xl">{section.title}</span></span><span className="text-sm text-muted-foreground">{sectionIndex === 0 ? 'Core' : 'Optional'}</span></summary>
         <div className="grid gap-5 border-t pb-6 pt-5 sm:grid-cols-2" style={{ borderColor: 'hsl(var(--border))' }}>{section.fields.map((field) => <label key={field.key} className={`block ${field.long ? 'sm:col-span-2' : ''}`}><span className="label">{field.label}</span>{field.long ? <textarea className="field min-h-28 resize-y leading-6" value={profile[field.key]} onChange={(event) => update(field.key, event.target.value)} placeholder={field.placeholder} /> : <input className="field" value={profile[field.key]} onChange={(event) => update(field.key, event.target.value)} placeholder={field.placeholder} />}</label>)}</div>
       </details>)}
-      {saved && <div className="mb-4"><Notice kind="success" testId="status-profile-saved">Profile saved on this device.</Notice></div>}
+      {saved && <div className="mb-4"><Notice kind="success" testId="status-profile-saved">Profile saved to your account.</Notice></div>}
       <div className="flex flex-wrap items-center gap-3"><button className="button-press inline-flex min-h-11 items-center gap-2 bg-primary px-4 text-sm text-primary-foreground" type="submit"><FloppyDisk size={17} />Save profile</button><button className="button-press min-h-11 border px-4 text-sm" type="button" onClick={clearProfile}>Clear profile</button><span className="text-xs text-muted-foreground">Changes are saved as you type.</span></div>
     </form>
   </div>;
