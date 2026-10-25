@@ -161,11 +161,19 @@ async function syncProjectDocuments(userId: string, project: WorkspaceProject, p
 export async function persistWorkspaceToSupabase(userId: string, workspace: WorkspaceData, previous: WorkspaceData): Promise<WorkspaceData> {
   if (!supabase) throw new Error('Supabase is not configured.');
 
-  const { error: profileError } = await supabase.from('founder_profiles').upsert({
-    user_id: userId,
-    voice_profile: { ...workspace.profile, onboardingComplete: workspace.onboardingComplete, accountType: workspace.accountType },
-  }, { onConflict: 'user_id' });
-  fail(profileError, 'founder profile');
+  const voiceProfile = { ...workspace.profile, onboardingComplete: workspace.onboardingComplete, accountType: workspace.accountType };
+  // The deployed table has no unique constraint on user_id, so PostgREST upsert
+  // with onConflict=user_id fails (42P10). The auth trigger creates this row;
+  // update it by its primary key, or insert if a row is not present yet.
+  const { data: existingProfile, error: lookupError } = await supabase.from('founder_profiles').select('id').eq('user_id', userId).maybeSingle();
+  fail(lookupError, 'founder profile lookup');
+  if (existingProfile) {
+    const { error } = await supabase.from('founder_profiles').update({ voice_profile: voiceProfile }).eq('id', existingProfile.id).eq('user_id', userId);
+    fail(error, 'founder profile');
+  } else {
+    const { error } = await supabase.from('founder_profiles').insert({ user_id: userId, voice_profile: voiceProfile });
+    fail(error, 'founder profile');
+  }
 
   const previousProjects = new Map(previous.projects.map((project) => [project.id, project]));
   const persistedProjects = await Promise.all(workspace.projects.map((project) => syncProjectDocuments(userId, project, previousProjects.get(project.id))));

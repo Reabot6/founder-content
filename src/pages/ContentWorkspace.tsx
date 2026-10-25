@@ -90,7 +90,7 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
     queryFn: () => getJob(jobId),
     enabled: Boolean(jobId),
     refetchInterval: (query) => {
-      if (!jobStarted || Date.now() - jobStarted > 180_000) return false;
+      if (!jobStarted || Date.now() - jobStarted > 180_000 || query.state.status === 'error') return false;
       const state = query.state.data;
       return state && state.status !== 'processing' ? false : 2500;
     },
@@ -127,6 +127,11 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
   }, [jobId, jobError, timedOut, jobQuery.isError]);
 
   function retryRequest() {
+    if (jobId) {
+      setLocalError('');
+      void jobQuery.refetch();
+      return;
+    }
     setJobId('');
     setJobStarted(null);
     setCompleted(null);
@@ -204,7 +209,7 @@ export function ContentWorkspace({ mode, drafts, onDraft, profile, projects, ski
           <button type="submit" className="button-press inline-flex min-h-11 items-center gap-2 bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50" disabled={loading || (mode === 'repurpose' && !selectedSource)} data-testid={`button-submit-${mode}`}>
             {loading ? 'Working…' : mode === 'create' ? 'Create draft' : 'Adapt this draft'} {!loading && <ArrowRight size={15} />}
           </button>
-          {(jobError || jobQuery.isError || timedOut) && <button type="button" className="button-press inline-flex min-h-11 items-center gap-2 border px-4 text-sm" onClick={retryRequest} data-testid="button-retry"><ArrowCounterClockwise size={16} weight="regular" /> Try again</button>}
+          {(jobError || jobQuery.isError || timedOut) && <button type="button" className="button-press inline-flex min-h-11 items-center gap-2 border px-4 text-sm" onClick={retryRequest} data-testid="button-retry"><ArrowCounterClockwise size={16} weight="regular" /> {jobId ? 'Check status again' : 'Try again'}</button>}
           <span className="text-[11px] text-muted-foreground">Draft only. Nothing is published.</span>
         </div>
       </form>

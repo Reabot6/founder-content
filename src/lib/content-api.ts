@@ -73,7 +73,15 @@ async function requestJson(path: string, init: RequestInit): Promise<unknown> {
   if (!response.ok) {
     const parsed = z.object({ status: z.literal('error'), error: z.object({ code: z.string(), message: z.string(), retryable: z.boolean() }) }).safeParse(body);
     if (parsed.success) throw new ApiError(parsed.data.error.message, parsed.data.error.code, parsed.data.error.retryable);
-    throw new ApiError(`The content service returned an unexpected response (${response.status}).`);
+    const webhookError = z.object({ code: z.number().optional(), message: z.string().optional(), hint: z.string().optional() }).safeParse(body);
+    if (webhookError.success && /webhook .* is not registered/i.test(webhookError.data.message ?? '')) {
+      throw new ApiError('The backend job-status webhook is not active. The backend developer needs to activate or register GET /webhook/job-status in n8n.', 'WEBHOOK_NOT_REGISTERED', false);
+    }
+    if (webhookError.success && webhookError.data.message) {
+      const detail = [webhookError.data.message, webhookError.data.hint].filter(Boolean).join(' ');
+      throw new ApiError(`The content service could not process this request: ${detail}`, `HTTP_${response.status}`, response.status >= 500 || response.status === 408 || response.status === 429);
+    }
+    throw new ApiError(`The content service returned an unexpected response (${response.status}).`, `HTTP_${response.status}`, response.status >= 500 || response.status === 408 || response.status === 429);
   }
   return body;
 }
