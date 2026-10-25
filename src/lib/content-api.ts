@@ -49,9 +49,12 @@ const demoJobs = new Map<string, { started: number; format: ContentFormat; topic
 let demoCounter = 0;
 
 async function authHeaders(): Promise<Record<string, string>> {
-  const { data } = await supabase?.auth.getSession() ?? { data: { session: null } };
+  if (isDemo) return {};
+  if (!authConfigured || !supabase) throw new ApiError('Authentication is not configured for this deployment. Add the Supabase URL and anon key, then redeploy.', 'AUTH_NOT_CONFIGURED', false);
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw new ApiError('Your sign-in could not be restored. Sign in again to continue.', 'AUTH_REQUIRED', false);
   const token = data.session?.access_token;
-  if (!isDemo && !token) throw new ApiError('Your session has expired. Sign in again to continue.', 'AUTH_REQUIRED', false);
+  if (!token) throw new ApiError('You are signed out. Sign in again to continue.', 'AUTH_REQUIRED', false);
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
