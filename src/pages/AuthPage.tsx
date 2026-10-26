@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ArrowLeft, ArrowRight, Key } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Eye, EyeSlash, Key } from '@phosphor-icons/react';
 import { supabase } from '@/lib/supabase';
 import { authConfigured, isDemo } from '@/lib/content-api';
 import { Notice } from '@/components/StatusNote';
@@ -11,6 +11,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -70,7 +71,7 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
         {!isDemo && <form className="mt-7 grid gap-4" onSubmit={submit} data-testid={`form-${mode}`}>
           {mode === 'sign-up' && <div><label htmlFor="full-name" className="label">Name</label><input id="full-name" className="field" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" required data-testid="input-name" /></div>}
           {mode !== 'reset-password' && <div><label htmlFor="email" className="label">Email</label><input id="email" className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required data-testid="input-email" /></div>}
-          {mode !== 'forgot-password' && <div><label htmlFor="password" className="label">{mode === 'reset-password' ? 'New password' : 'Password'}</label><input id="password" className="field" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'} minLength={8} required data-testid="input-password" /><p className="mt-1.5 text-[11px] text-muted-foreground">At least 8 characters.</p></div>}
+          {mode !== 'forgot-password' && <div><label htmlFor="password" className="label">{mode === 'reset-password' ? 'New password' : 'Password'}</label><div className="relative"><input id="password" className="field pr-12" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'} minLength={8} required data-testid="input-password" /><button type="button" className="absolute inset-y-0 right-0 grid w-11 place-items-center text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px]" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} aria-controls="password" data-testid="button-toggle-password">{showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}</button></div><p className="mt-1.5 text-[11px] text-muted-foreground">At least 8 characters.</p></div>}
           <button className="button-press mt-2 flex min-h-11 items-center justify-center gap-2 bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50" disabled={submitting || !authConfigured} data-testid={`button-submit-${mode}`}>{submitting ? 'Working…' : mode === 'sign-in' ? 'Sign in' : mode === 'sign-up' ? 'Create account' : mode === 'forgot-password' ? 'Send reset link' : 'Update password'} {!submitting && <ArrowRight size={15} />}</button>
         </form>}
         {!isDemo && mode === 'sign-in' && <p className="mt-4 text-center text-sm"><Link className="text-muted-foreground underline decoration-border underline-offset-4" href="/forgot-password">Forgot password?</Link></p>}
